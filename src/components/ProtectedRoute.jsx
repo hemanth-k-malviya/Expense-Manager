@@ -17,6 +17,6 @@ export function GuestRoute({ children }) {
   const { user, loading, configured } = useAuth()
 
   if (loading) return <AuthSplash />
-  if (configured && user) return <Navigate to="/" replace />
+  if (configured && user) return <Navigate to="/app" replace />
   return children
 }

@@ -1,28 +1,28 @@
-import { useEffect, useMemo, useState } from 'react'
-import { LANGUAGES, applyDocumentLanguage, detectLanguage, languageMeta, translate } from '../i18n'
-import { APP_NAME } from '../lib/constants'
+import { useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import CookieNotice from '../components/CookieNotice'
 import Select from '../components/Select'
+import { LANGUAGES } from '../i18n'
+import { APP_NAME } from '../lib/constants'
+import { FOOTER_NAV } from '../lib/site'
+import { setPageMeta } from '../lib/pageMeta'
 
-export function useAuthPageI18n() {
-  const [language, setLanguage] = useState(() => detectLanguage())
-  const t = useMemo(() => (key, vars) => translate(language, key, vars), [language])
-  const dir = languageMeta(language).dir
-
-  useEffect(() => {
-    applyDocumentLanguage(language)
-  }, [language])
-
-  return { language, setLanguage, t, dir }
-}
+export { usePageI18n as useAuthPageI18n } from '../i18n/usePageI18n'
 
 export default function AuthScreen({ title, subtitle, children, t, language, setLanguage }) {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    setPageMeta({ title, description: subtitle, path: pathname, noindex: true })
+  }, [pathname, subtitle, title])
+
   return (
     <div className="min-h-dvh bg-[#f7f8f5] lg:grid lg:grid-cols-[minmax(280px,42%)_1fr]">
       <aside className="relative hidden overflow-hidden bg-[#1d3434] px-10 py-12 text-[#f6f7ef] lg:flex lg:flex-col">
-        <div className="flex items-center gap-3 text-[22px] font-bold tracking-[-0.6px]">
+        <Link to="/" className="flex items-center gap-3 text-[22px] font-bold tracking-[-0.6px]">
           <span className="grid h-10 w-10 place-items-center rounded-[10px] bg-[#c9e75b] text-[22px] text-[#213332]">+</span>
           <span className="font-['Space_Grotesk']">{APP_NAME.toLowerCase()}</span>
-        </div>
+        </Link>
         <div className="mt-auto max-w-sm">
           <p className="text-[11px] font-bold tracking-[1.4px] text-[#c9e75b]">{t('auth.kicker')}</p>
           <h1 className="mt-3 font-['Space_Grotesk'] text-[36px] font-semibold leading-tight">{t('auth.panelTitle')}</h1>
@@ -34,10 +34,10 @@ export default function AuthScreen({ title, subtitle, children, t, language, set
 
       <section className="flex min-h-dvh flex-col px-4 py-6 sm:px-8 lg:px-16 lg:py-10">
         <div className="mb-8 flex items-center justify-between gap-3 lg:mb-10">
-          <div className="flex items-center gap-2 text-[18px] font-bold text-[#1d3434] lg:hidden">
+          <Link to="/" className="flex items-center gap-2 text-[18px] font-bold text-[#1d3434] lg:hidden">
             <span className="grid h-8 w-8 place-items-center rounded-[8px] bg-[#c9e75b] text-[18px] text-[#213332]">+</span>
             <span className="font-['Space_Grotesk']">{APP_NAME.toLowerCase()}</span>
-          </div>
+          </Link>
           <div className="ml-auto w-[11rem]">
             <Select
               value={language}
@@ -59,7 +59,15 @@ export default function AuthScreen({ title, subtitle, children, t, language, set
           <p className="mt-2 text-[13px] leading-6 text-[#7d8782]">{subtitle}</p>
           <div className="mt-8">{children}</div>
         </div>
+        <nav className="mx-auto mt-10 flex w-full max-w-[420px] flex-wrap items-center justify-center gap-x-5 gap-y-2 pb-16 text-center text-[12px] text-[#7d8782]">
+          {FOOTER_NAV.map((item) => (
+            <Link key={item.to} to={item.to} className="hover:text-[#1d3434]">
+              {t(item.labelKey)}
+            </Link>
+          ))}
+        </nav>
       </section>
+      <CookieNotice />
     </div>
   )
 }

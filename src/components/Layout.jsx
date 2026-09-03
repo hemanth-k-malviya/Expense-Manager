@@ -14,7 +14,7 @@ import { ASSISTANT_EVENT } from '../lib/assistant'
 import { formVariantFor } from '../lib/ledger'
 
 const pageTitleKeys = {
-  '/': 'nav.overview',
+  '/app': 'nav.overview',
   '/transactions': 'nav.transactions',
   '/budgets': 'nav.budgets',
   '/goals': 'nav.goals',
@@ -32,7 +32,7 @@ const pageTitleKeys = {
 }
 
 const mobileTabs = [
-  { to: '/', labelKey: 'tabs.home', icon: '◫', end: true },
+  { to: '/app', labelKey: 'tabs.home', icon: '◫', end: true },
   { to: '/transactions', labelKey: 'tabs.activity', icon: '↔' },
   { to: '/budgets', labelKey: 'nav.budgets', icon: '▤' },
   { to: '/books', labelKey: 'nav.books', icon: '◇' },
@@ -143,7 +143,7 @@ export default function Layout() {
 
         <nav className="mt-[25px] grid gap-[4px]" aria-label="Main navigation">
           {NAV_ITEMS.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.to === '/'} className={navButtonClass} onClick={() => setMobileOpen(false)}>
+            <NavLink key={item.to} to={item.to} end={item.to === '/app'} className={navButtonClass} onClick={() => setMobileOpen(false)}>
               <span className="w-[18px] text-center text-[17px] text-[#b3d0bf]">{item.icon}</span>
               <span className="flex-1">{t(item.labelKey)}</span>
               {item.premium && !isPro ? <span className="text-[9px] font-bold tracking-[0.6px] text-[#d7ef6b]">{t('common.pro')}</span> : null}
@@ -174,7 +174,12 @@ export default function Layout() {
             {t('auth.signOut')}
           </button>
 
-          <p className="mt-[28px] px-[13px] text-[10px] text-[#768e87]">© 2026 {APP_NAME} Inc.</p>
+          <p className="mt-[28px] px-[13px] text-[10px] text-[#768e87]">
+            © 2026 {APP_NAME}
+          </p>
+          <NavLink to="/privacy" className="mt-2 block px-[13px] text-[10px] text-[#c9e75b]">
+            {t('site.nav.privacy')}
+          </NavLink>
         </div>
       </>
     ),

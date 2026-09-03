@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { APP_HOME, isAppPath } from '../lib/site'
 
 function GoogleMark() {
   return (
@@ -26,7 +27,7 @@ export default function GoogleSignInButton({ t, showHint = false }) {
     try {
       await loginWithGoogle()
       const from = location.state?.from
-      navigate(typeof from === 'string' && from.startsWith('/') ? from : '/', { replace: true })
+      navigate(isAppPath(from) ? from : APP_HOME, { replace: true })
     } catch (caught) {
       if (caught?.code === 'auth/popup-closed-by-user' || caught?.code === 'auth/cancelled-popup-request') {
         setError('')

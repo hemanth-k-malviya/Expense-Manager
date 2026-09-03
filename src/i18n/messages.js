@@ -1,3 +1,5 @@
+import { siteEn, siteHi } from './siteMessages'
+
 const en = {
   'nav.overview': 'Overview',
   'nav.transactions': 'Transactions',
@@ -2193,5 +2195,8 @@ const de = fill({
   'plan.pro': 'Pro',
   'plan.business': 'Business',
 })
+
+Object.assign(en, siteEn)
+Object.assign(hi, siteHi)
 
 export const MESSAGES = { en, hi, es, ar, fr, zh, ta, pt, bn, te, de }

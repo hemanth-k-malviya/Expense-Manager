@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Field, { controlClass } from '../components/Field'
 import GoogleSignInButton from '../components/GoogleSignInButton'
 import { useAuth } from '../context/AuthContext'
+import { APP_HOME } from '../lib/site'
 import AuthScreen, { useAuthPageI18n } from './AuthScreen'
 
 export default function Register() {
@@ -41,7 +42,7 @@ export default function Register() {
     setError('')
     try {
       await register({ name: nextName, email: nextEmail, password })
-      navigate('/', { replace: true })
+      navigate(APP_HOME, { replace: true })
     } catch (caught) {
       setError(t(authErrorKey(caught)))
     } finally {

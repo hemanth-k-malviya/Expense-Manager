@@ -1,0 +1,31 @@
+User-agent: *
+Allow: /
+Allow: /guides
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /disclaimer
+Disallow: /app
+Disallow: /transactions
+Disallow: /budgets
+Disallow: /goals
+Disallow: /reports
+Disallow: /books
+Disallow: /settings
+Disallow: /business
+Disallow: /team
+Disallow: /clients
+Disallow: /approvals
+Disallow: /vendors
+Disallow: /shops
+Disallow: /analytics
+Disallow: /pricing
+Disallow: /login
+Disallow: /register
+Disallow: /reset-password
+
+User-agent: Mediapartners-Google
+Allow: /
+
+Sitemap: https://expense-manager-8eb96.web.app/sitemap.xml

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import Field, { controlClass } from '../components/Field'
 import GoogleSignInButton from '../components/GoogleSignInButton'
 import { useAuth } from '../context/AuthContext'
+import { APP_HOME, isAppPath } from '../lib/site'
 import AuthScreen, { useAuthPageI18n } from './AuthScreen'
 
 export default function Login() {
@@ -33,7 +34,7 @@ export default function Login() {
 
   const goHome = () => {
     const from = location.state?.from
-    navigate(typeof from === 'string' && from.startsWith('/') ? from : '/', { replace: true })
+    navigate(isAppPath(from) ? from : APP_HOME, { replace: true })
   }
 
   const submit = async (event) => {

@@ -1,25 +1,36 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
+import PublicLayout from './components/PublicLayout'
 import { GuestRoute, ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ExpenseProvider } from './context/ExpenseContext'
-import Budgets from './pages/Budgets'
-import Goals from './pages/Goals'
-import Login from './pages/Login'
-import Overview from './pages/Overview'
-import Register from './pages/Register'
-import ResetPassword from './pages/ResetPassword'
-import Reports from './pages/Reports'
-import Settings from './pages/Settings'
-import Team from './pages/Team'
-import Transactions from './pages/Transactions'
-import Vendors from './pages/Vendors'
-import Shops from './pages/Shops'
+import { APP_HOME } from './lib/site'
 import Analytics from './pages/Analytics'
 import Approvals from './pages/Approvals'
 import Books from './pages/Books'
+import Budgets from './pages/Budgets'
 import Business from './pages/Business'
 import Clients from './pages/Clients'
+import Goals from './pages/Goals'
+import Login from './pages/Login'
+import Overview from './pages/Overview'
+import About from './pages/public/About'
+import Contact from './pages/public/Contact'
+import Disclaimer from './pages/public/Disclaimer'
+import GuideArticle from './pages/public/GuideArticle'
+import Guides from './pages/public/Guides'
+import Landing from './pages/public/Landing'
+import NotFound from './pages/public/NotFound'
+import Privacy from './pages/public/Privacy'
+import Terms from './pages/public/Terms'
+import Register from './pages/Register'
+import Reports from './pages/Reports'
+import ResetPassword from './pages/ResetPassword'
+import Settings from './pages/Settings'
+import Shops from './pages/Shops'
+import Team from './pages/Team'
+import Transactions from './pages/Transactions'
+import Vendors from './pages/Vendors'
 
 function AuthenticatedShell() {
   const { user } = useAuth()
@@ -35,6 +46,16 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<Landing />} />
+            <Route path="/guides" element={<Guides />} />
+            <Route path="/guides/:slug" element={<GuideArticle />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/disclaimer" element={<Disclaimer />} />
+          </Route>
           <Route
             path="/login"
             element={
@@ -59,7 +80,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="/" element={<Overview />} />
+            <Route path={APP_HOME} element={<Overview />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/budgets" element={<Budgets />} />
             <Route path="/goals" element={<Goals />} />
@@ -74,7 +95,9 @@ export default function App() {
             <Route path="/vendors" element={<Vendors />} />
             <Route path="/shops" element={<Shops />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+          <Route element={<PublicLayout />}>
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </BrowserRouter>

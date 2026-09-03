@@ -98,7 +98,7 @@ export const DEFAULT_CATEGORIES = [
 ]
 
 export const NAV_ITEMS = [
-  { to: '/', labelKey: 'nav.overview', icon: '◫' },
+  { to: '/app', labelKey: 'nav.overview', icon: '◫' },
   { to: '/transactions', labelKey: 'nav.transactions', icon: '↔' },
   { to: '/budgets', labelKey: 'nav.budgets', icon: '▤' },
   { to: '/goals', labelKey: 'nav.goals', icon: '◎', premium: true },
