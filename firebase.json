@@ -1,11 +1,24 @@
 {
   "auth": {
+    "authorizedDomains": [
+      "localhost",
+      "127.0.0.1",
+      "expense-manager-8eb96.firebaseapp.com",
+      "expense-manager-8eb96.web.app",
+      "expense-manager-two-drab.vercel.app"
+    ],
     "providers": {
       "emailPassword": true,
       "googleSignIn": {
         "oAuthBrandDisplayName": "Expense So",
         "supportEmail": "hemantmaviya123@gmail.com",
-        "authorizedRedirectUris": ["http://localhost", "http://127.0.0.1"]
+        "authorizedRedirectUris": [
+          "http://localhost",
+          "http://127.0.0.1",
+          "https://expense-manager-8eb96.web.app",
+          "https://expense-manager-8eb96.firebaseapp.com",
+          "https://expense-manager-two-drab.vercel.app"
+        ]
       }
     }
   },

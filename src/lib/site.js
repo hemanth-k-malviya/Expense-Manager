@@ -15,7 +15,7 @@ export const GOOGLE_ADS_TXT_LINE = 'google.com, pub-9387062363004258, DIRECT, f0
 export const GOOGLE_HOW_DATA_IS_USED = 'https://policies.google.com/technologies/partner-sites'
 export const GOOGLE_AD_SETTINGS = 'https://adssettings.google.com'
 
-const fallbackOrigin = 'https://expense-manager-8eb96.web.app'
+const fallbackOrigin = 'https://expense-manager-two-drab.vercel.app'
 
 export const SITE_URL = String(import.meta.env.VITE_SITE_URL || fallbackOrigin).replace(/\/$/, '')
 
