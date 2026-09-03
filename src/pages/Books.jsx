@@ -10,7 +10,7 @@ import { donutStops, monthlySeries, categoryTotals, sumByType } from '../lib/cal
 import { monthLabel, todayISO } from '../lib/dates'
 import { booksWorkbookCsv, openPrintReport } from '../lib/exportReports'
 import { categoryColor, downloadFile, formatCompactMoney, formatMoney } from '../lib/format'
-import { isPersonalEntry } from '../lib/ledger'
+import { isPersonalEntry, isPayableReimbursement } from '../lib/ledger'
 
 const TABS = ['charts', 'invoices', 'inventory', 'ledger', 'reminders']
 
@@ -75,7 +75,11 @@ export default function Books() {
   const slices = categoryTotals(booksMonth, 'expense').map((item) => ({ ...item, color: categoryColor(item.category) }))
   const reminders = collectReminders({ invoices, bills, inventory, recurring, today, withinDays: 14 })
   const receivable = openReceivables(invoices, today)
-  const payable = openPayables(bills, today)
+  const payable = openPayables(bills, today, booksTransactions)
+  const reimbursementPayables = useMemo(
+    () => booksTransactions.filter(isPayableReimbursement),
+    [booksTransactions],
+  )
   const stockValue = inventoryValue(inventory)
   const expenseCategory = 'Other'
 
@@ -93,6 +97,7 @@ export default function Books() {
         bills,
         inventory,
         transactions: booksMonth,
+        reimbursements: reimbursementPayables,
         today,
       }),
       'text/csv;charset=utf-8',
@@ -115,7 +120,10 @@ export default function Books() {
         ${invoices.map((item) => `<tr><td>${item.number}</td><td>${item.party}</td><td>${item.dueDate}</td><td>${money((Number(item.amount) || 0) + (Number(item.taxAmount) || 0))}</td><td>${invoiceStatus(item, today)}</td></tr>`).join('')}</table>
         <h2>${t('books.bills')}</h2>
         <table><tr><th>${t('books.party')}</th><th>${t('books.due')}</th><th>${t('books.amount')}</th><th>${t('books.status')}</th></tr>
-        ${bills.map((item) => `<tr><td>${item.party}</td><td>${item.dueDate}</td><td>${money(item.amount)}</td><td>${billStatus(item, today)}</td></tr>`).join('')}</table>`,
+        ${bills.map((item) => `<tr><td>${item.party}</td><td>${item.dueDate}</td><td>${money(item.amount)}</td><td>${billStatus(item, today)}</td></tr>`).join('')}</table>
+        <h2>${t('books.reimbursePayables')}</h2>
+        <table><tr><th>${t('books.party')}</th><th>${t('books.date')}</th><th>${t('books.amount')}</th><th>${t('books.status')}</th></tr>
+        ${reimbursementPayables.map((item) => `<tr><td>${item.name}</td><td>${item.date}</td><td>${money(item.amount)}</td><td>${t('tx.badgePayable')}</td></tr>`).join('')}</table>`,
     })
     if (!ok) window.alert(t('books.popup'))
   }
@@ -220,6 +228,7 @@ export default function Books() {
           money={money}
           payable={payable}
           receivable={receivable}
+          reimbursements={reimbursementPayables}
           t={t}
           onAdd={addBill}
           onPaid={(item) => {
@@ -495,7 +504,7 @@ function InventoryPanel({ inventory, shops, money, t, onAdd, onAdjust, onDelete 
   )
 }
 
-function LedgerPanel({ bills, vendors, invoices, today, money, payable, receivable, t, onAdd, onPaid, onDelete }) {
+function LedgerPanel({ bills, vendors, invoices, today, money, payable, receivable, reimbursements = [], t, onAdd, onPaid, onDelete }) {
   const [form, setForm] = useState({ party: '', vendorId: '', amount: '', date: today, dueDate: today, notes: '' })
   return (
     <div className="space-y-4">
@@ -575,6 +584,26 @@ function LedgerPanel({ bills, vendors, invoices, today, money, payable, receivab
           )}
         </div>
       </section>
+      {reimbursements.length > 0 ? (
+        <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">
+          <h2 className="text-[17px] font-semibold text-[#263b39]">{t('books.reimbursePayables')}</h2>
+          <p className="mt-1 text-[12px] text-[#7d8782]">{t('books.reimbursePayablesHint')}</p>
+          <div className="mt-4 divide-y divide-[#eff1ed]">
+            {reimbursements.map((item) => (
+              <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-[13px]">
+                <div className="min-w-0">
+                  <b className="block truncate">{item.name}</b>
+                  <span className="text-[12px] text-[#7d8782]">{item.date}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-[#f8e7d0] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.6px] text-[#a96a2d]">{t('tx.badgePayable')}</span>
+                  <strong>{money(item.amount)}</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
       <p className="text-[12px] text-[#7d8782]">{t('books.ledgerHint', { count: invoices.filter((item) => invoiceStatus(item, today) !== 'paid' && invoiceStatus(item, today) !== 'draft').length })}</p>
     </div>
   )

@@ -10,13 +10,13 @@ import { defaultSubscription } from '../lib/subscription'
 import { collectReminders } from '../lib/books'
 import { buildBackupFile } from '../lib/backup'
 import { isPersonalEntry } from '../lib/ledger'
-import { isFeatureOn, setFeatureOn, areAllFeaturesOn, BUSINESS_FEATURE_IDS } from '../lib/features'
 import { applyDocumentLanguage, DEFAULT_LANGUAGE, detectLanguage, languageMeta, translate } from '../i18n'
+import { useAuth } from './AuthContext'
 
 const ExpenseContext = createContext(null)
 
-function initializeStore() {
-  const loaded = loadState()
+function initializeStore(uid, email) {
+  const loaded = loadState(uid, email)
   const base = loaded ?? getEmptyState({ language: detectLanguage() })
   const { newTransactions, updatedRecurring } = materializeRecurring(base.recurring, todayISO())
 
@@ -28,8 +28,11 @@ function initializeStore() {
 }
 
 export function ExpenseProvider({ children }) {
+  const { user } = useAuth()
+  const uid = user?.uid
+  const email = user?.email || ''
   const now = new Date()
-  const initial = useMemo(() => initializeStore(), [])
+  const initial = useMemo(() => initializeStore(uid, email), [uid, email])
   const hydrated = useRef(false)
 
   const [profile, setProfile] = useState(initial.profile)
@@ -90,13 +93,21 @@ export function ExpenseProvider({ children }) {
   )
 
   useEffect(() => {
+    if (!uid) return
     if (!hydrated.current) {
       hydrated.current = true
-      saveState(persistPayload)
+      saveState(persistPayload, uid, email)
       return
     }
-    saveState(persistPayload)
-  }, [persistPayload])
+    saveState(persistPayload, uid, email)
+  }, [persistPayload, uid, email])
+
+  useEffect(() => {
+    if (!user) return
+    const nextName = user.displayName?.trim() || user.email?.split('@')[0] || ''
+    if (!nextName) return
+    setProfile((current) => (current.name ? current : { ...current, name: nextName }))
+  }, [user])
 
   const addToast = useCallback((message, tone = 'info') => {
     const id = createId()
@@ -205,56 +216,23 @@ export function ExpenseProvider({ children }) {
       }
     })
 
-    if (isFeatureOn(profile.enabledBusinessFeatures, 'approvals')) {
-      const pending = transactions.filter((transaction) => transaction.status === 'submitted').length
-      if (pending > 0) {
-        items.push({
-          id: 'approvals-pending',
-          tone: 'warn',
-          message: t('alert.approvals', { count: pending }),
-        })
-      }
+    const pending = transactions.filter((transaction) => transaction.status === 'submitted').length
+    if (pending > 0) {
+      items.push({
+        id: 'approvals-pending',
+        tone: 'warn',
+        message: t('alert.approvals', { count: pending }),
+      })
     }
 
     return items
-  }, [bills, budgetStatus, goals, inventory, invoices, profile.enabledBusinessFeatures, recurring, t, transactions])
+  }, [bills, budgetStatus, goals, inventory, invoices, recurring, t, transactions])
 
   const isPro = true
-  const isBusiness = isFeatureOn(profile.enabledBusinessFeatures, 'company') || (profile.enabledBusinessFeatures || []).length > 0
-  const isFeatureEnabled = useCallback((feature) => isFeatureOn(profile.enabledBusinessFeatures, feature), [profile.enabledBusinessFeatures])
+  const isBusiness = true
+  const isFeatureEnabled = useCallback(() => true, [])
 
-  const enableFeature = useCallback((feature) => {
-    setProfile((current) => ({
-      ...current,
-      enabledBusinessFeatures: setFeatureOn(current.enabledBusinessFeatures, feature, true),
-    }))
-    addToast(tr('toast.featureOn', { name: tr(`feature.${feature}.title`) }), 'success')
-  }, [addToast, tr])
-
-  const disableFeature = useCallback((feature) => {
-    setProfile((current) => ({
-      ...current,
-      enabledBusinessFeatures: setFeatureOn(current.enabledBusinessFeatures, feature, false),
-    }))
-    addToast(tr('toast.featureOff', { name: tr(`feature.${feature}.title`) }), 'info')
-  }, [addToast, tr])
-
-  const allFeaturesOn = areAllFeaturesOn(profile.enabledBusinessFeatures)
-
-  const enableAllFeatures = useCallback(() => {
-    setProfile((current) => ({ ...current, enabledBusinessFeatures: [...BUSINESS_FEATURE_IDS] }))
-    addToast(tr('toast.featuresAllOn'), 'success')
-  }, [addToast, tr])
-
-  const disableAllFeatures = useCallback(() => {
-    setProfile((current) => ({ ...current, enabledBusinessFeatures: [] }))
-    addToast(tr('toast.featuresAllOff'), 'info')
-  }, [addToast, tr])
-
-  const requestUpgrade = useCallback((feature = 'company') => {
-    enableFeature(feature)
-  }, [enableFeature])
-
+  const requestUpgrade = useCallback(() => {}, [])
   const closeUpgrade = useCallback(() => {}, [])
 
   const subscribe = useCallback(() => {}, [])
@@ -262,10 +240,7 @@ export function ExpenseProvider({ children }) {
   const resumeSubscription = useCallback(() => {}, [])
 
   const requirePremium = useCallback(() => true, [])
-
-  const requireBusiness = useCallback((feature) => {
-    return isFeatureOn(profile.enabledBusinessFeatures, feature)
-  }, [profile.enabledBusinessFeatures])
+  const requireBusiness = useCallback(() => true, [])
 
   const updateProfile = useCallback((patch) => {
     setProfile((current) => ({ ...current, ...patch }))
@@ -458,8 +433,10 @@ export function ExpenseProvider({ children }) {
 
   const addDepartment = useCallback((payload) => {
     if (!requireBusiness('team')) return
-    setDepartments((current) => [...current, { id: createId(), name: payload.name.trim(), code: payload.code?.trim().toUpperCase() || '' }])
+    const next = { id: createId(), name: payload.name.trim(), code: payload.code?.trim().toUpperCase() || '' }
+    setDepartments((current) => [...current, next])
     addToast(tr('toast.deptAdded'), 'success')
+    return next
   }, [addToast, requireBusiness])
 
   const deleteDepartment = useCallback((id) => {
@@ -469,17 +446,16 @@ export function ExpenseProvider({ children }) {
 
   const addEmployee = useCallback((payload) => {
     if (!requireBusiness('team')) return
-    setEmployees((current) => [
-      ...current,
-      {
-        id: createId(),
-        name: payload.name.trim(),
-        email: payload.email?.trim() || '',
-        role: payload.role || 'employee',
-        departmentId: payload.departmentId || '',
-      },
-    ])
+    const next = {
+      id: createId(),
+      name: payload.name.trim(),
+      email: payload.email?.trim() || '',
+      role: payload.role || 'employee',
+      departmentId: payload.departmentId || '',
+    }
+    setEmployees((current) => [...current, next])
     addToast(tr('toast.memberAdded'), 'success')
+    return next
   }, [addToast, requireBusiness])
 
   const deleteEmployee = useCallback((id) => {
@@ -489,11 +465,10 @@ export function ExpenseProvider({ children }) {
 
   const addClient = useCallback((payload) => {
     if (!requireBusiness('clients')) return
-    setClients((current) => [
-      ...current,
-      { id: createId(), name: payload.name.trim(), contact: payload.contact?.trim() || '', email: payload.email?.trim() || '' },
-    ])
+    const next = { id: createId(), name: payload.name.trim(), contact: payload.contact?.trim() || '', email: payload.email?.trim() || '' }
+    setClients((current) => [...current, next])
     addToast(tr('toast.clientAdded'), 'success')
+    return next
   }, [addToast, requireBusiness])
 
   const deleteClient = useCallback((id) => {
@@ -504,11 +479,10 @@ export function ExpenseProvider({ children }) {
 
   const addProject = useCallback((payload) => {
     if (!requireBusiness('clients')) return
-    setProjects((current) => [
-      ...current,
-      { id: createId(), name: payload.name.trim(), clientId: payload.clientId, status: payload.status || 'active' },
-    ])
+    const next = { id: createId(), name: payload.name.trim(), clientId: payload.clientId || '', status: payload.status || 'active' }
+    setProjects((current) => [...current, next])
     addToast(tr('toast.projectAdded'), 'success')
+    return next
   }, [addToast, requireBusiness])
 
   const deleteProject = useCallback((id) => {
@@ -518,8 +492,10 @@ export function ExpenseProvider({ children }) {
 
   const addVendor = useCallback((payload) => {
     if (!requireBusiness('vendors')) return
-    setVendors((current) => [...current, { id: createId(), name: payload.name.trim(), category: payload.category?.trim() || 'General' }])
+    const next = { id: createId(), name: payload.name.trim(), category: payload.category?.trim() || 'General' }
+    setVendors((current) => [...current, next])
     addToast(tr('toast.vendorAdded'), 'success')
+    return next
   }, [addToast, requireBusiness])
 
   const deleteVendor = useCallback((id) => {
@@ -529,16 +505,15 @@ export function ExpenseProvider({ children }) {
 
   const addShop = useCallback((payload) => {
     if (!requireBusiness('shops')) return
-    setShops((current) => [
-      ...current,
-      {
-        id: createId(),
-        name: payload.name.trim(),
-        city: payload.city?.trim() || '',
-        type: payload.type || 'retail',
-      },
-    ])
+    const next = {
+      id: createId(),
+      name: payload.name.trim(),
+      city: payload.city?.trim() || '',
+      type: payload.type || 'retail',
+    }
+    setShops((current) => [...current, next])
     addToast(tr('toast.shopAdded'), 'success')
+    return next
   }, [addToast, requireBusiness])
 
   const deleteShop = useCallback((id) => {
@@ -549,23 +524,27 @@ export function ExpenseProvider({ children }) {
   const addInvoice = useCallback((payload) => {
     const amount = Number(payload.amount) || 0
     if (!payload.party?.trim() || amount <= 0) return
-    setInvoices((current) => [
-      {
-        id: createId(),
-        number: payload.number?.trim() || `INV-${String(current.length + 1).padStart(4, '0')}`,
-        party: payload.party.trim(),
-        clientId: payload.clientId || '',
-        date: payload.date || todayISO(),
-        dueDate: payload.dueDate || payload.date || todayISO(),
-        amount,
-        taxAmount: Number(payload.taxAmount) || 0,
-        status: payload.status || 'sent',
-        notes: payload.notes?.trim() || '',
-        createdAt: new Date().toISOString(),
-      },
-      ...current,
-    ])
+    const next = {
+      id: createId(),
+      number: payload.number?.trim() || `INV-${Date.now().toString().slice(-4)}`,
+      party: payload.party.trim(),
+      clientId: payload.clientId || '',
+      date: payload.date || todayISO(),
+      dueDate: payload.dueDate || payload.date || todayISO(),
+      amount,
+      taxAmount: Number(payload.taxAmount) || 0,
+      status: payload.status || 'sent',
+      notes: payload.notes?.trim() || '',
+      createdAt: new Date().toISOString(),
+    }
+    setInvoices((current) => {
+      if (!payload.number?.trim()) {
+        next.number = `INV-${String(current.length + 1).padStart(4, '0')}`
+      }
+      return [next, ...current]
+    })
     addToast(tr('toast.invoiceAdded'), 'success')
+    return next
   }, [addToast])
 
   const updateInvoice = useCallback((id, payload) => {
@@ -593,21 +572,20 @@ export function ExpenseProvider({ children }) {
   const addBill = useCallback((payload) => {
     const amount = Number(payload.amount) || 0
     if (!payload.party?.trim() || amount <= 0) return
-    setBills((current) => [
-      {
-        id: createId(),
-        party: payload.party.trim(),
-        vendorId: payload.vendorId || '',
-        date: payload.date || todayISO(),
-        dueDate: payload.dueDate || payload.date || todayISO(),
-        amount,
-        status: payload.status || 'unpaid',
-        notes: payload.notes?.trim() || '',
-        createdAt: new Date().toISOString(),
-      },
-      ...current,
-    ])
+    const next = {
+      id: createId(),
+      party: payload.party.trim(),
+      vendorId: payload.vendorId || '',
+      date: payload.date || todayISO(),
+      dueDate: payload.dueDate || payload.date || todayISO(),
+      amount,
+      status: payload.status || 'unpaid',
+      notes: payload.notes?.trim() || '',
+      createdAt: new Date().toISOString(),
+    }
+    setBills((current) => [next, ...current])
     addToast(tr('toast.billAdded'), 'success')
+    return next
   }, [addToast])
 
   const updateBill = useCallback((id, payload) => {
@@ -730,7 +708,7 @@ export function ExpenseProvider({ children }) {
   }, [addToast])
 
   const resetAll = useCallback(() => {
-    clearState()
+    clearState(uid, email)
     const empty = getEmptyState({
       name: profile.name,
       workspace: profile.workspace,
@@ -757,7 +735,7 @@ export function ExpenseProvider({ children }) {
     setBills(empty.bills)
     goToToday()
     addToast(tr('toast.reset'), 'success')
-  }, [addToast, goToToday, profile.currency, profile.geminiApiKey, profile.language, profile.name, profile.workspace])
+  }, [addToast, email, goToToday, profile.currency, profile.geminiApiKey, profile.language, profile.name, profile.workspace, uid])
 
   const value = useMemo(
     () => ({
@@ -772,11 +750,6 @@ export function ExpenseProvider({ children }) {
       isPro,
       isBusiness,
       isFeatureEnabled,
-      enableFeature,
-      disableFeature,
-      allFeaturesOn,
-      enableAllFeatures,
-      disableAllFeatures,
       upgradeRequest,
       company,
       departments,
@@ -873,11 +846,6 @@ export function ExpenseProvider({ children }) {
       isPro,
       isBusiness,
       isFeatureEnabled,
-      enableFeature,
-      disableFeature,
-      allFeaturesOn,
-      enableAllFeatures,
-      disableAllFeatures,
       upgradeRequest,
       company,
       departments,

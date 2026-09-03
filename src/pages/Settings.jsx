@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Field, { controlClass } from '../components/Field'
 import LanguageSwitcher from '../components/LanguageSwitcher'
-import BusinessFeatures from '../components/BusinessFeatures'
 import ConfirmDialog from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
 import { useExpenses } from '../context/ExpenseContext'
+import { useAuth } from '../context/AuthContext'
 import { categoryLabel, paymentLabel } from '../i18n'
 import { extractBackupState } from '../lib/backup'
 import { CURRENCIES, PAYMENT_METHODS, RECURRING_FREQUENCIES } from '../lib/constants'
@@ -29,6 +30,8 @@ export default function Settings() {
     t,
     locale,
   } = useExpenses()
+  const { user, logout, sendPasswordReset, authErrorKey } = useAuth()
+  const navigate = useNavigate()
 
   const fileRef = useRef(null)
   const [name, setName] = useState(profile.name)
@@ -49,6 +52,7 @@ export default function Settings() {
   })
   const [resetOpen, setResetOpen] = useState(false)
   const [pendingBackup, setPendingBackup] = useState(null)
+  const [resetBusy, setResetBusy] = useState(false)
   const [categoryError, setCategoryError] = useState('')
   const [recurringError, setRecurringError] = useState('')
 
@@ -123,6 +127,42 @@ export default function Settings() {
         </div>
       </section>
 
+      <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">
+        <h2 className="text-[17px] font-semibold text-[#263b39]">{t('auth.account')}</h2>
+        <p className="mt-1 text-[12px] text-[#7d8782]">{t('auth.signedInAs', { email: user?.email || '—' })}</p>
+        <p className="mt-2 text-[12px] text-[#7d8782]">{t('auth.resetHelp')}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              setResetBusy(true)
+              try {
+                await sendPasswordReset(user?.email)
+                addToast(t('auth.resetSent', { email: user?.email || '' }), 'success')
+              } catch (caught) {
+                addToast(t(authErrorKey(caught)), 'warn')
+              } finally {
+                setResetBusy(false)
+              }
+            }}
+            disabled={resetBusy || !user?.email}
+            className="rounded-[8px] border border-[#dfe6df] px-4 py-2 text-[12px] font-semibold text-[#1d3434] disabled:opacity-50"
+          >
+            {resetBusy ? t('auth.working') : t('auth.resetPassword')}
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              await logout()
+              navigate('/login', { replace: true })
+            }}
+            className="rounded-[8px] bg-[#1d3434] px-4 py-2 text-[12px] font-semibold text-white"
+          >
+            {t('auth.signOut')}
+          </button>
+        </div>
+      </section>
+
       {/* <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">
         <h2 className="text-[17px] font-semibold text-[#263b39]">{t('ai.settings')}</h2>
         <p className="mt-1 text-[12px] text-[#7d8782]">{t('ai.settingsHelp')}</p>
@@ -193,7 +233,6 @@ export default function Settings() {
             </button>
           </div>
         </form>
-        <BusinessFeatures />
       </section>
 
       <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">

@@ -8,7 +8,7 @@ import Select from '../components/Select'
 import { useExpenses } from '../context/ExpenseContext'
 import { categoryLabel } from '../i18n'
 import { formatMoney } from '../lib/format'
-import { formVariantFor, matchesLedger } from '../lib/ledger'
+import { formVariantFor, matchesLedger, payableReimbursementTotal } from '../lib/ledger'
 
 const LEDGER_TABS = [
   { id: 'personal', labelKey: 'tx.ledgerPersonal' },
@@ -62,6 +62,13 @@ export default function Transactions() {
 
   const income = filtered.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount, 0)
   const spending = filtered.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)
+  const reimbursablePayable = payableReimbursementTotal(filtered)
+  const reimbursablePending = filtered
+    .filter((item) => item.reimbursable && item.status === 'submitted')
+    .reduce((sum, item) => sum + item.amount, 0)
+  const reimbursablePaid = filtered
+    .filter((item) => item.reimbursable && item.status === 'reimbursed')
+    .reduce((sum, item) => sum + item.amount, 0)
 
   const openCreate = () => {
     if (createVariant === 'billable' && clients.length === 0) {
@@ -125,9 +132,19 @@ export default function Transactions() {
 
       <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px] text-[#5b6b67]">
         <span>{t('tx.shown', { count: filtered.length })}</span>
-        <span>{t('tx.in', { amount: formatMoney(income, profile.currency) })}</span>
-        <span>{t('tx.out', { amount: formatMoney(spending, profile.currency) })}</span>
-        <span>{t('tx.net', { amount: formatMoney(income - spending, profile.currency) })}</span>
+        {ledger === 'reimburse' ? (
+          <>
+            <span>{t('tx.payable', { amount: formatMoney(reimbursablePayable, profile.currency) })}</span>
+            <span>{t('tx.pendingClaims', { amount: formatMoney(reimbursablePending, profile.currency) })}</span>
+            <span>{t('tx.reimbursed', { amount: formatMoney(reimbursablePaid, profile.currency) })}</span>
+          </>
+        ) : (
+          <>
+            <span>{t('tx.in', { amount: formatMoney(income, profile.currency) })}</span>
+            <span>{t('tx.out', { amount: formatMoney(spending, profile.currency) })}</span>
+            <span>{t('tx.net', { amount: formatMoney(income - spending, profile.currency) })}</span>
+          </>
+        )}
         <Select value={sort} onChange={(event) => setSort(event.target.value)} className="w-full rounded-[8px] border border-[#dfe6df] bg-white px-3 py-2 text-[12px] outline-none sm:ml-auto sm:w-auto">
           <option value="newest">{t('tx.newest')}</option>
           <option value="oldest">{t('tx.oldest')}</option>

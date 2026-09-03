@@ -1,22 +1,21 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Field, { controlClass } from '../components/Field'
-import LockedFeature from '../components/LockedFeature'
 import Modal from '../components/Modal'
 import TransactionForm from '../components/TransactionForm'
 import { useExpenses } from '../context/ExpenseContext'
 import { nameById } from '../lib/business'
 import { formatMoney } from '../lib/format'
-import { isPersonalEntry } from '../lib/ledger'
+import { isPersonalEntry, payableReimbursementTotal } from '../lib/ledger'
 
 export default function Business() {
   const {
-    isFeatureEnabled,
     profile,
     company,
     departments,
     clients,
     monthTransactions,
+    transactions,
     updateCompany,
     addTransaction,
     categories,
@@ -34,8 +33,9 @@ export default function Business() {
   const expenses = monthTransactions.filter((item) => item.type === 'expense')
   const businessExpenses = expenses.filter((item) => !isPersonalEntry(item))
   const billable = businessExpenses.filter((item) => item.billable).reduce((sum, item) => sum + item.amount, 0)
-  const reimbursableOpen = businessExpenses
-    .filter((item) => item.reimbursable && item.status !== 'reimbursed' && item.status !== 'rejected')
+  const reimbursablePayable = payableReimbursementTotal(transactions)
+  const reimbursablePending = transactions
+    .filter((item) => item.reimbursable && item.status === 'submitted')
     .reduce((sum, item) => sum + item.amount, 0)
   const tax = businessExpenses.reduce((sum, item) => sum + (Number(item.taxAmount) || 0), 0)
   const pending = businessExpenses.filter((item) => item.status === 'submitted').length
@@ -58,8 +58,6 @@ export default function Business() {
       defaultTaxRate: Number.parseFloat(form.defaultTaxRate) || 0,
     })
   }
-
-  if (!isFeatureEnabled('company')) return <LockedFeature feature="company" />
 
   return (
     <div className="space-y-4">
@@ -90,8 +88,11 @@ export default function Business() {
         </article>
         <article className="rounded-[9px] border border-[#e8ebe4] bg-white px-5 py-4">
           <p className="text-[10px] font-bold tracking-[1.2px] text-[#87918a]">{t('business.reimburse')}</p>
-          <p className="mt-2 font-['Space_Grotesk'] text-[22px] font-semibold">{formatMoney(reimbursableOpen, profile.currency)}</p>
+          <p className="mt-2 font-['Space_Grotesk'] text-[22px] font-semibold">{formatMoney(reimbursablePayable, profile.currency)}</p>
           <p className="field-hint">{t('business.reimburseHint')}</p>
+          {reimbursablePending > 0 ? (
+            <p className="mt-1 text-[12px] text-[#7d8782]">{t('business.reimbursePending', { amount: formatMoney(reimbursablePending, profile.currency) })}</p>
+          ) : null}
           <button type="button" onClick={() => setAddKind('reimburse')} className="mt-3 rounded-[7px] bg-[#e96d52] px-3 py-2 text-[11px] font-semibold text-white">
             {t('business.addReimburse')}
           </button>

@@ -6,6 +6,16 @@ export function isReimbursementEntry(transaction) {
   return Boolean(transaction?.reimbursable)
 }
 
+export function isPayableReimbursement(transaction) {
+  return isReimbursementEntry(transaction) && transaction.status === 'approved'
+}
+
+export function payableReimbursementTotal(transactions) {
+  return (transactions || [])
+    .filter(isPayableReimbursement)
+    .reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+}
+
 export function isCompanyOpsEntry(transaction) {
   if (isBillableEntry(transaction) || isReimbursementEntry(transaction)) return false
   return Boolean(

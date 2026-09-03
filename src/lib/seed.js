@@ -2,6 +2,7 @@ import { DEFAULT_CATEGORIES } from './constants'
 import { createId } from './dates'
 import { defaultCompany } from './business'
 import { defaultSubscription } from './subscription'
+import { BUSINESS_FEATURE_IDS } from './features'
 
 export function getEmptyState(profile = {}) {
   return {
@@ -11,7 +12,7 @@ export function getEmptyState(profile = {}) {
       currency: profile.currency || 'USD',
       language: profile.language || 'en',
       geminiApiKey: profile.geminiApiKey || '',
-      enabledBusinessFeatures: Array.isArray(profile.enabledBusinessFeatures) ? profile.enabledBusinessFeatures : [],
+      enabledBusinessFeatures: [...BUSINESS_FEATURE_IDS],
     },
     subscription: defaultSubscription(),
     company: defaultCompany(),

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import BarChart from '../components/charts/BarChart'
 import LineChart from '../components/charts/LineChart'
-import LockedFeature from '../components/LockedFeature'
 import { useExpenses } from '../context/ExpenseContext'
 import { categoryLabel } from '../i18n'
 import { shopColor } from '../lib/business'
@@ -17,7 +16,7 @@ const METRIC_IDS = [
 ]
 
 export default function Analytics() {
-  const { isFeatureEnabled, profile, shops, transactions, selectedYear, selectedMonth, t, locale } = useExpenses()
+  const { profile, shops, transactions, selectedYear, selectedMonth, t, locale } = useExpenses()
   const [range, setRange] = useState(6)
   const [mode, setMode] = useState('combined')
   const [metric, setMetric] = useState('sales')
@@ -89,8 +88,6 @@ export default function Analytics() {
       return [...current, id]
     })
   }
-
-  if (!isFeatureEnabled('analytics')) return <LockedFeature feature="analytics" />
 
   const metricName = t(`common.${metric}`)
   const trendTitle = mode === 'shops' ? t('analytics.trendShop', { metric: metricName }) : t('analytics.trendCombined')

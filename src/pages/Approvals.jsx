@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import LockedFeature from '../components/LockedFeature'
 import Select from '../components/Select'
 import { useExpenses } from '../context/ExpenseContext'
 import { nameById } from '../lib/business'
@@ -7,7 +6,7 @@ import { formatDisplayDate } from '../lib/dates'
 import { formatMoney } from '../lib/format'
 
 export default function Approvals() {
-  const { isFeatureEnabled, profile, transactions, employees, setTransactionStatus, t, locale } = useExpenses()
+  const { profile, transactions, employees, setTransactionStatus, t, locale } = useExpenses()
   const [filter, setFilter] = useState('submitted')
 
   const claims = useMemo(
@@ -15,8 +14,6 @@ export default function Approvals() {
     [transactions],
   )
   const visible = claims.filter((item) => (filter === 'all' ? true : item.status === filter))
-
-  if (!isFeatureEnabled('approvals')) return <LockedFeature feature="approvals" />
 
   return (
     <div>
@@ -48,7 +45,12 @@ export default function Approvals() {
                   {item.reimbursable ? ` · ${t('approvals.reimbursable')}` : ''}
                 </p>
               </div>
-              <strong className="text-[13px]">{formatMoney(item.amount, profile.currency)}</strong>
+              <strong className="text-[13px]">
+                {formatMoney(item.amount, profile.currency)}
+                {item.reimbursable && item.status === 'approved' ? (
+                  <span className="ml-2 text-[11px] font-semibold text-[#a96a2d]">{t('tx.badgePayable')}</span>
+                ) : null}
+              </strong>
               <div className="flex flex-wrap gap-2">
                 {item.status === 'submitted' ? (
                   <>

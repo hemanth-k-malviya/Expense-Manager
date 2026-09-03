@@ -1,16 +1,13 @@
 import { useState } from 'react'
 import Field, { controlClass } from '../components/Field'
-import LockedFeature from '../components/LockedFeature'
 import { useExpenses } from '../context/ExpenseContext'
 import { nameById } from '../lib/business'
 import { formatMoney } from '../lib/format'
 
 export default function Clients() {
-  const { isFeatureEnabled, profile, clients, projects, monthTransactions, addClient, deleteClient, addProject, deleteProject, t } = useExpenses()
+  const { profile, clients, projects, monthTransactions, addClient, deleteClient, addProject, deleteProject, t } = useExpenses()
   const [client, setClient] = useState({ name: '', contact: '', email: '' })
   const [project, setProject] = useState({ name: '', clientId: '' })
-
-  if (!isFeatureEnabled('clients')) return <LockedFeature feature="clients" />
 
   return (
     <div className="space-y-4">

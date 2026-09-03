@@ -1,0 +1,12 @@
+{
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Expense So",
+        "supportEmail": "hemantmaviya123@gmail.com",
+        "authorizedRedirectUris": ["http://localhost", "http://127.0.0.1"]
+      }
+    }
+  }
+}

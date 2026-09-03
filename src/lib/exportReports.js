@@ -22,6 +22,7 @@ export function booksWorkbookCsv({
   bills,
   inventory,
   transactions,
+  reimbursements = [],
   today,
 }) {
   const money = (value) => formatMoney(value, currency)
@@ -50,6 +51,10 @@ export function booksWorkbookCsv({
     ['Bills / payables'],
     ['Party', 'Date', 'Due', 'Amount', 'Status'],
     ...bills.map((item) => [item.party, item.date, item.dueDate, item.amount, billStatus(item, today)]),
+    [],
+    ['Reimbursement payables'],
+    ['Name', 'Date', 'Amount', 'Status'],
+    ...reimbursements.map((item) => [item.name, item.date, item.amount, 'payable']),
     [],
     ['Inventory'],
     ['Name', 'SKU', 'Qty', 'Buy price', 'Sell price', 'Reorder at'],

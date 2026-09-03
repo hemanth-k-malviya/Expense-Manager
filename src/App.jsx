@@ -1,9 +1,14 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
+import { GuestRoute, ProtectedRoute } from './components/ProtectedRoute'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { ExpenseProvider } from './context/ExpenseContext'
 import Budgets from './pages/Budgets'
 import Goals from './pages/Goals'
+import Login from './pages/Login'
 import Overview from './pages/Overview'
+import Register from './pages/Register'
+import ResetPassword from './pages/ResetPassword'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import Team from './pages/Team'
@@ -16,12 +21,44 @@ import Books from './pages/Books'
 import Business from './pages/Business'
 import Clients from './pages/Clients'
 
+function AuthenticatedShell() {
+  const { user } = useAuth()
+  return (
+    <ExpenseProvider key={user.uid}>
+      <Layout />
+    </ExpenseProvider>
+  )
+}
+
 export default function App() {
   return (
-    <ExpenseProvider>
+    <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route element={<Layout />}>
+          <Route
+            path="/login"
+            element={
+              <GuestRoute>
+                <Login />
+              </GuestRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <GuestRoute>
+                <Register />
+              </GuestRoute>
+            }
+          />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route
+            element={
+              <ProtectedRoute>
+                <AuthenticatedShell />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/" element={<Overview />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/budgets" element={<Budgets />} />
@@ -41,6 +78,6 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-    </ExpenseProvider>
+    </AuthProvider>
   )
 }

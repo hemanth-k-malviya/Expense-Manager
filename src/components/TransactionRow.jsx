@@ -1,5 +1,6 @@
 import { categoryInitials, categoryTone, formatSignedMoney } from '../lib/format'
 import { formatDisplayDate } from '../lib/dates'
+import { isPayableReimbursement } from '../lib/ledger'
 import { useExpenses } from '../context/ExpenseContext'
 
 const toneClass = {
@@ -40,7 +41,9 @@ export default function TransactionRow({ transaction, currency, onEdit, onDelete
         <span className="rounded-full bg-[#eef4f2] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.5px] text-[#3d6a66]">{t('tx.badgeBillable')}</span>
       ) : null}
       {transaction.reimbursable ? (
-        <span className="rounded-full bg-[#f8e7d0] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.5px] text-[#a96a2d]">{t('tx.badgeReimburse')}</span>
+        <span className="rounded-full bg-[#f8e7d0] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.5px] text-[#a96a2d]">
+          {isPayableReimbursement(transaction) ? t('tx.badgePayable') : t('tx.badgeReimburse')}
+        </span>
       ) : null}
 
       {!compact && (onEdit || onDelete) ? (

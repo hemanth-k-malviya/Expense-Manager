@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useExpenses } from '../context/ExpenseContext'
+import { useAuth } from '../context/AuthContext'
 import { APP_NAME, BUSINESS_NAV_ITEMS, NAV_ITEMS } from '../lib/constants'
 import { firstName } from '../lib/format'
 import LanguageSwitcher from './LanguageSwitcher'
@@ -10,6 +11,7 @@ import TransactionForm from './TransactionForm'
 import AssistantPanel from './AssistantPanel'
 import ReminderPopup from './ReminderPopup'
 import { ASSISTANT_EVENT } from '../lib/assistant'
+import { formVariantFor } from '../lib/ledger'
 
 const pageTitleKeys = {
   '/': 'nav.overview',
@@ -46,12 +48,14 @@ export default function Layout() {
     addTransaction,
     isPro,
     isBusiness,
-    isFeatureEnabled,
     t,
     dir,
   } = useExpenses()
+  const { logout, user } = useAuth()
+  const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [notifyOpen, setNotifyOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [addDraft, setAddDraft] = useState(null)
   const [assistantOpen, setAssistantOpen] = useState(false)
@@ -74,6 +78,7 @@ export default function Layout() {
   useEffect(() => {
     setMobileOpen(false)
     setNotifyOpen(false)
+    setAccountOpen(false)
   }, [location.pathname])
 
   useEffect(() => {
@@ -97,6 +102,18 @@ export default function Layout() {
       document.body.style.overflow = ''
     }
   }, [mobileOpen])
+
+  const closeAssistant = () => {
+    setAssistantOpen(false)
+    setAssistantSeed('')
+  }
+
+  const handleLogout = async () => {
+    setAccountOpen(false)
+    setMobileOpen(false)
+    await logout()
+    navigate('/login', { replace: true })
+  }
 
   const navButtonClass = ({ isActive }) =>
     `flex w-full items-center gap-[13px] rounded-[7px] px-[13px] py-[11px] text-left text-[13px] transition ${
@@ -137,7 +154,6 @@ export default function Layout() {
             <NavLink key={item.to} to={item.to} className={navButtonClass} onClick={() => setMobileOpen(false)}>
               <span className="w-[18px] text-center text-[17px] text-[#b3d0bf]">{item.icon}</span>
               <span className="flex-1">{t(item.labelKey)}</span>
-              {!isFeatureEnabled(item.feature) ? <span className="text-[9px] font-bold tracking-[0.6px] text-[#8aa39c]">{t('common.off')}</span> : null}
             </NavLink>
           ))}
         </nav>
@@ -147,34 +163,22 @@ export default function Layout() {
             <span className="w-[18px] text-center text-[17px] text-[#b3d0bf]">⚙</span>
             {t('nav.settings')}
           </NavLink>
-
-          <div className="mt-[22px] rounded-[8px] border border-[#47605a] bg-[#294542] p-[17px]">
-            <span className="text-[#d7ef6b]">✦</span>
-            {isBusiness ? (
-              <>
-                <b className="mt-[8px] block font-['Space_Grotesk'] text-[14px] text-white">{t('layout.onBusiness')}</b>
-                <p className="mt-[7px] text-[11px] leading-[1.5] text-[#adc0b9]">{t('layout.onBusinessBody')}</p>
-              </>
-            ) : (
-              <>
-                <b className="mt-[8px] block font-['Space_Grotesk'] text-[14px] text-white">{t('layout.upgradeBusiness')}</b>
-                <p className="mt-[7px] text-[11px] leading-[1.5] text-[#adc0b9]">{t('layout.upgradeBusinessBody')}</p>
-                <NavLink
-                  to="/settings"
-                  onClick={() => setMobileOpen(false)}
-                  className="mt-[15px] inline-block border-0 bg-transparent p-0 text-[11px] font-medium text-[#d7ef6b] no-underline"
-                >
-                  {t('layout.unlockBusiness')}
-                </NavLink>
-              </>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              handleLogout()
+            }}
+            className="mt-1 flex w-full items-center gap-[13px] rounded-[7px] px-[13px] py-[11px] text-left text-[13px] text-[#b6c7c0] hover:bg-[#2e4947] hover:text-white"
+          >
+            <span className="w-[18px] text-center text-[17px] text-[#b3d0bf]">→</span>
+            {t('auth.signOut')}
+          </button>
 
           <p className="mt-[28px] px-[13px] text-[10px] text-[#768e87]">© 2026 {APP_NAME} Inc.</p>
         </div>
       </>
     ),
-    [initials, isBusiness, isFeatureEnabled, isPro, profile.name, profile.workspace, t],
+    [handleLogout, initials, isBusiness, isPro, profile.name, profile.workspace, t],
   )
 
   return (
@@ -220,27 +224,6 @@ export default function Layout() {
               <LanguageSwitcher compact />
               <button
                 type="button"
-                onClick={() => {
-                  setAssistantSeed('')
-                  setAssistantOpen(true)
-                }}
-                className="hidden min-h-9 rounded-full border border-[#dfe6df] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#1d3434] sm:inline-flex"
-          >
-            {t('ai.open')}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAssistantSeed('')
-              setAssistantOpen(true)
-            }}
-            className="grid h-10 w-10 place-items-center rounded-full border border-[#dfe6df] bg-white text-[11px] font-bold text-[#1d3434] sm:hidden"
-            aria-label={t('ai.open')}
-          >
-            AI
-          </button>
-              <button
-                type="button"
                 onClick={() => setAddOpen(true)}
                 className="hidden min-h-9 rounded-[7px] bg-[#e96d52] px-3 py-2 text-[12px] font-bold text-white md:inline-flex"
               >
@@ -252,7 +235,10 @@ export default function Layout() {
                   type="button"
                   className="relative grid h-10 w-10 place-items-center rounded-full text-[21px] text-[#67726d] hover:bg-[#eef1ed]"
                   aria-label={t('layout.notifications')}
-                  onClick={() => setNotifyOpen((open) => !open)}
+                  onClick={() => {
+                    setAccountOpen(false)
+                    setNotifyOpen((open) => !open)
+                  }}
                 >
                   ♢
                   {unread > 0 ? <i className="absolute right-2 top-2 h-[5px] w-[5px] rounded-full bg-[#e96d52]" /> : null}
@@ -279,13 +265,43 @@ export default function Layout() {
                 ) : null}
               </div>
 
-              <NavLink to="/settings" className="flex items-center gap-2 text-[12px] text-[#46504c]">
-                <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#7b73b7] text-[10px] font-bold text-white">{initials}</span>
-                <span className="hidden lg:inline">{firstName(profile.name)}</span>
-                {isBusiness ? (
-                  <span className="hidden rounded-full bg-[#1d3434] px-2 py-0.5 text-[9px] font-bold text-[#d7ef6b] sm:inline">{t('common.biz')}</span>
+              <div className="relative">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 text-[12px] text-[#46504c]"
+                  aria-label={t('auth.account')}
+                  aria-expanded={accountOpen}
+                  onClick={() => {
+                    setNotifyOpen(false)
+                    setAccountOpen((open) => !open)
+                  }}
+                >
+                  <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#7b73b7] text-[10px] font-bold text-white">{initials}</span>
+                  <span className="hidden lg:inline">{firstName(profile.name)}</span>
+                  {isBusiness ? (
+                    <span className="hidden rounded-full bg-[#1d3434] px-2 py-0.5 text-[9px] font-bold text-[#d7ef6b] sm:inline">{t('common.biz')}</span>
+                  ) : null}
+                </button>
+                {accountOpen ? (
+                  <div className={`absolute top-11 z-20 w-[min(calc(100vw-1.5rem),220px)] rounded-[12px] border border-[#e4e8df] bg-white p-2 shadow-lg ${dir === 'rtl' ? 'left-0' : 'right-0'}`}>
+                    <p className="truncate px-2 py-1.5 text-[11px] text-[#7d8782]">{user?.email || profile.name}</p>
+                    <NavLink
+                      to="/settings"
+                      onClick={() => setAccountOpen(false)}
+                      className="block rounded-[8px] px-2 py-2 text-[12px] font-medium text-[#46504c] hover:bg-[#f7f9f2]"
+                    >
+                      {t('nav.settings')}
+                    </NavLink>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="block w-full rounded-[8px] px-2 py-2 text-left text-[12px] font-semibold text-[#c45b45] hover:bg-[#f7f9f2]"
+                    >
+                      {t('auth.signOut')}
+                    </button>
+                  </div>
                 ) : null}
-              </NavLink>
+              </div>
             </div>
           </header>
 
@@ -298,12 +314,51 @@ export default function Layout() {
       <button
         type="button"
         onClick={() => setAddOpen(true)}
-        className={`fixed z-30 grid h-14 w-14 place-items-center rounded-full bg-[#e96d52] text-2xl font-bold text-white shadow-[0_8px_20px_rgba(233,109,82,0.4)] md:hidden ${dir === 'rtl' ? 'left-4' : 'right-4'}`}
+        className={`fixed z-30 grid h-14 w-14 place-items-center rounded-full bg-[#e96d52] text-2xl font-bold text-white shadow-[0_8px_20px_rgba(233,109,82,0.4)] md:hidden ${dir === 'rtl' ? 'right-4' : 'left-4'}`}
         style={{ bottom: 'calc(4.75rem + env(safe-area-inset-bottom))' }}
         aria-label={t('layout.addTransaction')}
       >
         +
       </button>
+
+      {assistantOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-[35] bg-[#1d3434]/25 md:hidden"
+          aria-label={t('common.close')}
+          onClick={closeAssistant}
+        />
+      ) : null}
+
+      <div
+        className={`fixed z-40 flex flex-col ${dir === 'rtl' ? 'items-start left-4 lg:left-[calc(248px+1.5rem)]' : 'items-end right-4'} bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-6`}
+      >
+        {assistantOpen ? (
+          <AssistantPanel seedPrompt={assistantSeed} onClose={closeAssistant} />
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            if (assistantOpen) {
+              closeAssistant()
+              return
+            }
+            setAssistantSeed('')
+            setAssistantOpen(true)
+          }}
+          className={`mt-3 grid h-14 w-14 place-items-center rounded-full shadow-[0_10px_24px_rgba(29,52,52,0.28)] transition ${
+            assistantOpen ? 'bg-[#e96d52] text-white' : 'bg-[#1d3434] text-[#d7ef6b]'
+          }`}
+          aria-label={assistantOpen ? t('common.close') : t('ai.open')}
+          aria-expanded={assistantOpen}
+        >
+          {assistantOpen ? (
+            <span className="text-2xl leading-none">×</span>
+          ) : (
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-[#c9e75b] text-[16px] font-bold text-[#1d3434]">✦</span>
+          )}
+        </button>
+      </div>
 
       <nav
         className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[#e4e8df] bg-[#fbfcf9]/95 backdrop-blur md:hidden"
@@ -329,32 +384,16 @@ export default function Layout() {
         </button>
       </nav>
 
-      {assistantOpen ? (
-        <AssistantPanel
-          seedPrompt={assistantSeed}
-          onClose={() => {
-            setAssistantOpen(false)
-            setAssistantSeed('')
-          }}
-          onEditDraft={(draft) => {
-            setAssistantOpen(false)
-            setAssistantSeed('')
-            setAddDraft(draft)
-            setAddOpen(true)
-          }}
-        />
-      ) : null}
-
       {reminderOpen && alerts.length > 0 && !addOpen && !assistantOpen ? (
         <ReminderPopup alerts={alerts} onClose={() => setReminderOpen(false)} />
       ) : null}
 
       {addOpen ? (
-        <Modal title={t('layout.addTransaction')} onClose={() => { setAddOpen(false); setAddDraft(null) }}>
+        <Modal title={t('layout.addTransaction')} onClose={() => { setAddOpen(false); setAddDraft(null) }} wide={addDraft ? formVariantFor(addDraft) !== 'personal' : false}>
           <TransactionForm
             key={addDraft ? `draft-${addDraft.name}-${addDraft.amount}` : 'blank'}
             categories={categories}
-            variant="personal"
+            variant={addDraft ? formVariantFor(addDraft) : 'personal'}
             initialValue={addDraft}
             submitLabel={t('tx.saveEntry')}
             onCancel={() => { setAddOpen(false); setAddDraft(null) }}

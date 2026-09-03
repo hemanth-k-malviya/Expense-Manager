@@ -1,16 +1,13 @@
 import { useState } from 'react'
 import Field, { controlClass } from '../components/Field'
-import LockedFeature from '../components/LockedFeature'
 import { useExpenses } from '../context/ExpenseContext'
 import { SHOP_TYPES } from '../lib/business'
 import { formatMoney } from '../lib/format'
 import { moneyTotals } from '../lib/calculations'
 
 export default function Shops() {
-  const { isFeatureEnabled, profile, shops, monthTransactions, addShop, deleteShop, t } = useExpenses()
+  const { profile, shops, monthTransactions, addShop, deleteShop, t } = useExpenses()
   const [form, setForm] = useState({ name: '', city: '', type: 'retail' })
-
-  if (!isFeatureEnabled('shops')) return <LockedFeature feature="shops" />
 
   return (
     <div>

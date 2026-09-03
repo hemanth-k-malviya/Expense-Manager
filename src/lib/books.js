@@ -1,3 +1,5 @@
+import { payableReimbursementTotal } from './ledger'
+
 export const INVOICE_STATUSES = ['draft', 'sent', 'paid']
 export const BILL_STATUSES = ['unpaid', 'paid']
 
@@ -58,8 +60,9 @@ export function openReceivables(invoices, today) {
     .reduce((sum, item) => sum + (Number(item.amount) || 0) + (Number(item.taxAmount) || 0), 0)
 }
 
-export function openPayables(bills, today) {
-  return bills.filter((item) => billStatus(item, today) !== 'paid').reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+export function openPayables(bills, today, transactions = []) {
+  const fromBills = bills.filter((item) => billStatus(item, today) !== 'paid').reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+  return fromBills + payableReimbursementTotal(transactions)
 }
 
 export function collectReminders({ invoices = [], bills = [], inventory = [], recurring = [], today, withinDays = 7 }) {

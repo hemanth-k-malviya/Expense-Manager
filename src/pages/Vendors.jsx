@@ -1,14 +1,11 @@
 import { useState } from 'react'
 import Field, { controlClass } from '../components/Field'
-import LockedFeature from '../components/LockedFeature'
 import { useExpenses } from '../context/ExpenseContext'
 import { formatMoney } from '../lib/format'
 
 export default function Vendors() {
-  const { isFeatureEnabled, profile, vendors, monthTransactions, addVendor, deleteVendor, t } = useExpenses()
+  const { profile, vendors, monthTransactions, addVendor, deleteVendor, t } = useExpenses()
   const [form, setForm] = useState({ name: '', category: '' })
-
-  if (!isFeatureEnabled('vendors')) return <LockedFeature feature="vendors" />
 
   return (
     <div>

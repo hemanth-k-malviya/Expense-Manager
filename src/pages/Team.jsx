@@ -1,15 +1,12 @@
 import { useState } from 'react'
 import Field, { controlClass } from '../components/Field'
-import LockedFeature from '../components/LockedFeature'
 import { useExpenses } from '../context/ExpenseContext'
 import { EMPLOYEE_ROLES, nameById } from '../lib/business'
 
 export default function Team() {
-  const { isFeatureEnabled, departments, employees, addDepartment, deleteDepartment, addEmployee, deleteEmployee, t } = useExpenses()
+  const { departments, employees, addDepartment, deleteDepartment, addEmployee, deleteEmployee, t } = useExpenses()
   const [dept, setDept] = useState({ name: '', code: '' })
   const [member, setMember] = useState({ name: '', email: '', role: 'employee', departmentId: '' })
-
-  if (!isFeatureEnabled('team')) return <LockedFeature feature="team" />
 
   return (
     <div className="space-y-4">

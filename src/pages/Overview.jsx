@@ -7,7 +7,6 @@ import TransactionForm from '../components/TransactionForm'
 import TransactionRow from '../components/TransactionRow'
 import { donutStops } from '../lib/calculations'
 import { formatLongDate, greetingKey, monthLabel } from '../lib/dates'
-import { openExpenseAssistant } from '../lib/assistant'
 import { categoryColor, clampPercent, firstName, formatCompactMoney, formatMoney, percentChange } from '../lib/format'
 
 function ChangeHint({ current, previous, invert = false, t }) {
@@ -236,18 +235,6 @@ export default function Overview() {
           ) : null}
         </article>
       </div>
-
-      {isBusiness ? null : (
-        <div className="mt-[13px] flex flex-col gap-[12px] rounded-[9px] border border-[#dbe899] bg-[#f7f9f2] px-[20px] py-[18px] text-[12px] text-[#2b3d3c] sm:flex-row sm:items-center">
-          <span className="grid h-[28px] w-[28px] place-items-center rounded-full bg-[#1d3434] text-[#d7ef6b]">✦</span>
-          <span>
-            {t('overview.bizBanner')}
-          </span>
-          <Link to="/settings" className="text-[11px] font-semibold text-[#4d7772] sm:ml-auto">
-            {t('overview.seeBusiness')}
-          </Link>
-        </div>
-      )}
 
       <div className="mt-[13px] flex flex-col gap-[12px] rounded-[9px] border border-[#e8ebe4] bg-[#f7f9f2] px-[20px] py-[18px] text-[12px] text-[#2b3d3c] sm:flex-row sm:items-center">
         <span className="grid h-[28px] w-[28px] place-items-center rounded-full bg-[#ebefc8] text-[#6f7a31]">✦</span>
