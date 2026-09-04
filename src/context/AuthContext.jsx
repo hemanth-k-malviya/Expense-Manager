@@ -18,8 +18,8 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const configured = isFirebaseConfigured()
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(configured)
+  const [user, setUser] = useState(() => getFirebaseAuth()?.currentUser ?? null)
+  const [loading, setLoading] = useState(() => configured && !getFirebaseAuth()?.currentUser)
 
   useEffect(() => {
     const auth = getFirebaseAuth()
@@ -29,10 +29,21 @@ export function AuthProvider({ children }) {
       return undefined
     }
 
-    return onAuthStateChanged(auth, (next) => {
-      setUser(next)
+    let cancelled = false
+    const unsub = onAuthStateChanged(auth, (next) => {
+      if (!cancelled) setUser(next)
+    })
+
+    auth.authStateReady().finally(() => {
+      if (cancelled) return
+      setUser(auth.currentUser)
       setLoading(false)
     })
+
+    return () => {
+      cancelled = true
+      unsub()
+    }
   }, [configured])
 
   const register = useCallback(async ({ name, email, password }) => {

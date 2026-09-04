@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { APP_HOME } from '../lib/site'
 import AuthSplash from './AuthSplash'
 
 export function ProtectedRoute({ children }) {
@@ -14,9 +15,9 @@ export function ProtectedRoute({ children }) {
 }
 
 export function GuestRoute({ children }) {
-  const { user, loading, configured } = useAuth()
+  const { user, loading } = useAuth()
 
   if (loading) return <AuthSplash />
-  if (configured && user) return <Navigate to="/app" replace />
+  if (user) return <Navigate to={APP_HOME} replace />
   return children
 }

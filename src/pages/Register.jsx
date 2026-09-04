@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
+import AuthSplash from '../components/AuthSplash'
 import Field, { controlClass } from '../components/Field'
 import GoogleSignInButton from '../components/GoogleSignInButton'
 import { useAuth } from '../context/AuthContext'
@@ -7,7 +8,7 @@ import { APP_HOME } from '../lib/site'
 import AuthScreen, { useAuthPageI18n } from './AuthScreen'
 
 export default function Register() {
-  const { register, configured, authErrorKey } = useAuth()
+  const { register, configured, authErrorKey, user, loading } = useAuth()
   const { language, setLanguage, t } = useAuthPageI18n()
   const navigate = useNavigate()
   const [name, setName] = useState('')
@@ -49,6 +50,9 @@ export default function Register() {
       setBusy(false)
     }
   }
+
+  if (loading) return <AuthSplash />
+  if (user) return <Navigate to={APP_HOME} replace />
 
   return (
     <AuthScreen title={t('auth.registerTitle')} subtitle={t('auth.registerSubtitle')} t={t} language={language} setLanguage={setLanguage}>
