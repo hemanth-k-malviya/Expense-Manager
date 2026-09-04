@@ -28,4 +28,4 @@ Disallow: /reset-password
 User-agent: Mediapartners-Google
 Allow: /
 
-Sitemap: https://expense-manager-8eb96.web.app/sitemap.xml
+Sitemap: https://expense-manager-two-drab.vercel.app/sitemap.xml
