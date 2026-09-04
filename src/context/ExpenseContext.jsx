@@ -96,7 +96,6 @@ export function ExpenseProvider({ children }) {
     if (!uid) return
     if (!hydrated.current) {
       hydrated.current = true
-      saveState(persistPayload, uid, email)
       return
     }
     saveState(persistPayload, uid, email)

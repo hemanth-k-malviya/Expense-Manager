@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import PublicLayout from './components/PublicLayout'
+import AuthActionRedirect from './components/AuthActionRedirect'
 import { GuestRoute, ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ExpenseProvider } from './context/ExpenseContext'
@@ -12,6 +13,7 @@ import Budgets from './pages/Budgets'
 import Business from './pages/Business'
 import Clients from './pages/Clients'
 import Goals from './pages/Goals'
+import ForgotPassword from './pages/ForgotPassword'
 import Login from './pages/Login'
 import Overview from './pages/Overview'
 import About from './pages/public/About'
@@ -35,7 +37,7 @@ import Vendors from './pages/Vendors'
 function AuthenticatedShell() {
   const { user } = useAuth()
   return (
-    <ExpenseProvider key={user.uid}>
+    <ExpenseProvider key={`${user.uid}:${user.email || ''}`}>
       <Layout />
     </ExpenseProvider>
   )
@@ -45,7 +47,8 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
+        <AuthActionRedirect>
+          <Routes>
           <Route element={<PublicLayout />}>
             <Route path="/" element={<Landing />} />
             <Route path="/guides" element={<Guides />} />
@@ -72,7 +75,16 @@ export default function App() {
               </GuestRoute>
             }
           />
+          <Route
+            path="/forgot-password"
+            element={
+              <GuestRoute>
+                <ForgotPassword />
+              </GuestRoute>
+            }
+          />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/__/auth/action" element={<ResetPassword />} />
           <Route
             element={
               <ProtectedRoute>
@@ -100,6 +112,7 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
+        </AuthActionRedirect>
       </BrowserRouter>
     </AuthProvider>
   )

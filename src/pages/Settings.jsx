@@ -116,21 +116,21 @@ export default function Settings() {
     <div className="space-y-4">
       <div>
         <h1 className="page-title m-0 font-semibold text-[#223535]">{t('settings.title')}</h1>
-        <p className="mt-2 text-[13px] text-[#88918b]">{t('settings.subtitle')}</p>
+        <p className="mt-2 text-[15px] text-[#88918b]">{t('settings.subtitle')}</p>
       </div>
 
       <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">
-        <h2 className="text-[17px] font-semibold text-[#263b39]">{t('settings.language')}</h2>
-        <p className="mt-1 text-[12px] text-[#7d8782]">{t('settings.languageHelp')}</p>
-        <div className="mt-4 max-w-md">
+        <h2 className="text-[20px] font-semibold text-[#263b39]">{t('settings.language')}</h2>
+        <p className="mt-1 text-[15px] text-[#7d8782]">{t('settings.languageHelp')}</p>
+        <div className="mt-4 max-w-lg">
           <LanguageSwitcher />
         </div>
       </section>
 
       <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">
-        <h2 className="text-[17px] font-semibold text-[#263b39]">{t('auth.account')}</h2>
-        <p className="mt-1 text-[12px] text-[#7d8782]">{t('auth.signedInAs', { email: user?.email || '—' })}</p>
-        <p className="mt-2 text-[12px] text-[#7d8782]">{t('auth.resetHelp')}</p>
+        <h2 className="text-[20px] font-semibold text-[#263b39]">{t('auth.account')}</h2>
+        <p className="mt-1 text-[15px] text-[#7d8782]">{t('auth.signedInAs', { email: user?.email || '—' })}</p>
+        <p className="mt-2 text-[15px] text-[#7d8782]">{t('auth.resetHelp')}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
@@ -146,7 +146,7 @@ export default function Settings() {
               }
             }}
             disabled={resetBusy || !user?.email}
-            className="rounded-[8px] border border-[#dfe6df] px-4 py-2 text-[12px] font-semibold text-[#1d3434] disabled:opacity-50"
+            className="rounded-[8px] border border-[#dfe6df] px-4 py-2 text-[15px] font-semibold text-[#1d3434] disabled:opacity-50"
           >
             {resetBusy ? t('auth.working') : t('auth.resetPassword')}
           </button>
@@ -156,7 +156,7 @@ export default function Settings() {
               await logout()
               navigate('/login', { replace: true })
             }}
-            className="rounded-[8px] bg-[#1d3434] px-4 py-2 text-[12px] font-semibold text-white"
+            className="rounded-[8px] bg-[#1d3434] px-4 py-2 text-[15px] font-semibold text-white"
           >
             {t('auth.signOut')}
           </button>
@@ -164,8 +164,8 @@ export default function Settings() {
       </section>
 
       {/* <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">
-        <h2 className="text-[17px] font-semibold text-[#263b39]">{t('ai.settings')}</h2>
-        <p className="mt-1 text-[12px] text-[#7d8782]">{t('ai.settingsHelp')}</p>
+        <h2 className="text-[20px] font-semibold text-[#263b39]">{t('ai.settings')}</h2>
+        <p className="mt-1 text-[15px] text-[#7d8782]">{t('ai.settingsHelp')}</p>
         <form
           className="mt-4 max-w-xl space-y-3"
           onSubmit={(event) => {
@@ -174,7 +174,7 @@ export default function Settings() {
             addToast(t('ai.toastKey'), 'success')
           }}
         >
-          <label className="block text-[12px] font-medium text-[#4b5d5a]">
+          <label className="block text-[15px] font-medium text-[#4b5d5a]">
             {t('ai.apiKey')}
             <input
               type="password"
@@ -186,7 +186,7 @@ export default function Settings() {
             />
           </label>
           <div className="flex flex-wrap gap-2">
-            <button type="submit" className="rounded-[8px] bg-[#1d3434] px-4 py-2 text-[12px] font-semibold text-white">
+            <button type="submit" className="rounded-[8px] bg-[#1d3434] px-4 py-2 text-[15px] font-semibold text-white">
               {t('ai.saveKey')}
             </button>
             {profile.geminiApiKey ? (
@@ -197,12 +197,12 @@ export default function Settings() {
                   updateProfile({ geminiApiKey: '' })
                   addToast(t('ai.toastKeyRemoved'), 'info')
                 }}
-                className="rounded-[8px] border border-[#dfe6df] px-4 py-2 text-[12px]"
+                className="rounded-[8px] border border-[#dfe6df] px-4 py-2 text-[15px]"
               >
                 {t('ai.clearKey')}
               </button>
             ) : null}
-            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="inline-flex items-center rounded-[8px] px-4 py-2 text-[12px] font-medium text-[#4d7772]">
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="inline-flex items-center rounded-[8px] px-4 py-2 text-[15px] font-medium text-[#4d7772]">
               {t('ai.studio')} ↗
             </a>
           </div>
@@ -210,7 +210,7 @@ export default function Settings() {
       </section> */}
 
       <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">
-        <h2 className="text-[17px] font-semibold text-[#263b39]">{t('settings.profile')}</h2>
+        <h2 className="text-[20px] font-semibold text-[#263b39]">{t('settings.profile')}</h2>
         <form onSubmit={saveProfile} className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label={t('settings.displayName')} explain={t('settings.displayNameHint')} placeholder={t('settings.displayNamePh')}>
             <input value={name} onChange={(event) => setName(event.target.value)} className={controlClass} />
@@ -228,7 +228,7 @@ export default function Settings() {
             </select>
           </Field>
           <div className="sm:col-span-2">
-            <button type="submit" className="rounded-[8px] bg-[#1d3434] px-4 py-2 text-[12px] font-semibold text-white">
+            <button type="submit" className="rounded-[8px] bg-[#1d3434] px-4 py-2 text-[15px] font-semibold text-white">
               {t('settings.saveProfile')}
             </button>
           </div>
@@ -237,7 +237,7 @@ export default function Settings() {
 
       <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[17px] font-semibold text-[#263b39]">{t('settings.categories')}</h2>
+          <h2 className="text-[20px] font-semibold text-[#263b39]">{t('settings.categories')}</h2>
         </div>
         <form
           onSubmit={handleAddCategory}
@@ -260,14 +260,14 @@ export default function Settings() {
               <option value="income">{t('type.income')}</option>
             </select>
           </Field>
-          <button type="submit" className="self-end rounded-[8px] bg-[#e96d52] px-4 py-2 text-[12px] font-semibold text-white">
+          <button type="submit" className="self-end rounded-[8px] bg-[#e96d52] px-4 py-2 text-[15px] font-semibold text-white">
             {t('settings.add')}
           </button>
         </form>
-        {categoryError ? <p className="mt-2 text-[12px] text-[#c45b45]">{categoryError}</p> : null}
+        {categoryError ? <p className="mt-2 text-[15px] text-[#c45b45]">{categoryError}</p> : null}
         <div className="mt-4 flex flex-wrap gap-2">
           {categories.map((category) => (
-            <span key={category.id} className="inline-flex items-center gap-2 rounded-full bg-[#f3f6f1] px-3 py-1 text-[11px] text-[#46504c]">
+            <span key={category.id} className="inline-flex items-center gap-2 rounded-full bg-[#f3f6f1] px-3 py-1 text-[14px] text-[#46504c]">
               {categoryLabel(t, category.name)}
               <em className="not-italic text-[#8a948e]">{t(`type.${category.type}`)}</em>
               <button type="button" onClick={() => deleteCategory(category.id)} className="text-[#b45b4a]" aria-label={`${t('common.delete')} ${category.name}`}>
@@ -280,21 +280,21 @@ export default function Settings() {
 
       <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[17px] font-semibold text-[#263b39]">{t('settings.recurring')}</h2>
+          <h2 className="text-[20px] font-semibold text-[#263b39]">{t('settings.recurring')}</h2>
           <button
             type="button"
             onClick={() => setRecurringOpen(true)}
-            className="text-[12px] font-semibold text-[#4d7772]"
+            className="text-[15px] font-semibold text-[#4d7772]"
           >
             {t('settings.addRecurring')}
           </button>
         </div>
         <div className="mt-4 divide-y divide-[#eff1ed]">
           {recurring.length === 0 ? (
-            <p className="py-4 text-[12px] text-[#7d8782]">{t('settings.noRecurring')}</p>
+            <p className="py-4 text-[15px] text-[#7d8782]">{t('settings.noRecurring')}</p>
           ) : (
             recurring.map((item) => (
-              <div key={item.id} className="flex items-start justify-between gap-3 py-3 text-[12px]">
+              <div key={item.id} className="flex items-start justify-between gap-3 py-3 text-[15px]">
                 <div className="min-w-0">
                   <b className="block truncate text-[#263b39]">{item.name}</b>
                   <span className="block text-[#7d8782]">
@@ -311,28 +311,28 @@ export default function Settings() {
       </section>
 
       <section className="rounded-[9px] border border-[#e8ebe4] bg-white p-5">
-        <h2 className="text-[17px] font-semibold text-[#263b39]">{t('settings.data')}</h2>
-        <p className="mt-2 text-[12px] text-[#7d8782]">{t('settings.dataHelp')}</p>
-        <p className="mt-2 text-[12px] text-[#7d8782]">{t('settings.dataIncludes')}</p>
+        <h2 className="text-[20px] font-semibold text-[#263b39]">{t('settings.data')}</h2>
+        <p className="mt-2 text-[15px] text-[#7d8782]">{t('settings.dataHelp')}</p>
+        <p className="mt-2 text-[15px] text-[#7d8782]">{t('settings.dataIncludes')}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={exportJson}
-            className="rounded-[8px] bg-[#1d3434] px-4 py-2 text-[12px] font-semibold text-white"
+            className="rounded-[8px] bg-[#1d3434] px-4 py-2 text-[15px] font-semibold text-white"
           >
             {t('settings.downloadBackup')}
           </button>
           <button
             type="button"
             onClick={exportCsv}
-            className="rounded-[8px] border border-[#dfe6df] px-4 py-2 text-[12px] font-medium"
+            className="rounded-[8px] border border-[#dfe6df] px-4 py-2 text-[15px] font-medium"
           >
             {t('common.export')}
           </button>
-          <button type="button" onClick={() => fileRef.current?.click()} className="rounded-[8px] border border-[#dfe6df] px-4 py-2 text-[12px] font-medium">
+          <button type="button" onClick={() => fileRef.current?.click()} className="rounded-[8px] border border-[#dfe6df] px-4 py-2 text-[15px] font-medium">
             {t('settings.restore')}
           </button>
-          <button type="button" onClick={() => setResetOpen(true)} className="rounded-[8px] px-4 py-2 text-[12px] font-medium text-[#b45b4a]">
+          <button type="button" onClick={() => setResetOpen(true)} className="rounded-[8px] px-4 py-2 text-[15px] font-medium text-[#b45b4a]">
             {t('settings.reset')}
           </button>
           <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={handleImport} />
@@ -400,12 +400,12 @@ export default function Settings() {
                 </select>
               </Field>
             </div>
-            {recurringError ? <p className="text-[12px] text-[#c45b45]">{recurringError}</p> : null}
+            {recurringError ? <p className="text-[15px] text-[#c45b45]">{recurringError}</p> : null}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setRecurringOpen(false)} className="min-h-11 rounded-[8px] border border-[#dfe6df] px-[14px] py-[10px] text-[12px]">
+              <button type="button" onClick={() => setRecurringOpen(false)} className="min-h-11 rounded-[8px] border border-[#dfe6df] px-[14px] py-[10px] text-[15px]">
                 {t('common.cancel')}
               </button>
-              <button type="submit" className="min-h-11 rounded-[8px] bg-[#e96d52] px-[16px] py-[10px] text-[12px] font-semibold text-white">
+              <button type="submit" className="min-h-11 rounded-[8px] bg-[#e96d52] px-[16px] py-[10px] text-[15px] font-semibold text-white">
                 {t('settings.saveRecurring')}
               </button>
             </div>

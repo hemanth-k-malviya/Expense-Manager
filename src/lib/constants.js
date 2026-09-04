@@ -11,7 +11,7 @@ export const CURRENCIES = [
   { code: 'JPY', label: 'Japanese Yen' },
 ]
 
-export const PAYMENT_METHODS = ['Card', 'Cash', 'Bank', 'Wallet']
+export const PAYMENT_METHODS = ['Card', 'Cash', 'Bank', 'UPI', 'Wallet']
 
 export const RECURRING_FREQUENCIES = [
   { value: 'weekly', label: 'Weekly' },

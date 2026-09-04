@@ -1,27 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import Field, { controlClass } from '../components/Field'
 import { useAuth } from '../context/AuthContext'
+import { authActionFromLocation } from '../lib/authAction'
 import AuthScreen, { useAuthPageI18n } from './AuthScreen'
-
-function actionCodeFrom(searchParams) {
-  const nested = searchParams.get('link')
-  if (nested) {
-    try {
-      const inner = new URL(nested)
-      return String(inner.searchParams.get('oobCode') || inner.searchParams.get('oobcode') || '').trim()
-    } catch {
-      // Use the outer query instead.
-    }
-  }
-  return String(searchParams.get('oobCode') || searchParams.get('oobcode') || '').trim()
-}
 
 export default function ResetPassword() {
   const { verifyResetCode, completePasswordReset, configured, authErrorKey } = useAuth()
   const { language, setLanguage, t } = useAuthPageI18n()
-  const [searchParams] = useSearchParams()
-  const code = actionCodeFrom(searchParams)
+  const location = useLocation()
+  const code = authActionFromLocation(location).oobCode
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -133,7 +121,7 @@ export default function ResetPassword() {
       {!checking && !done && (!code || error) && !email ? (
         <div>
           {error ? <p className="mb-4 rounded-[10px] bg-[#fdecea] px-3 py-2 text-[12px] font-medium text-[#c45b45]">{error}</p> : null}
-          <Link to="/login" className="inline-flex min-h-11 items-center rounded-[8px] bg-[#1d3434] px-4 text-[13px] font-semibold text-white">
+          <Link to="/forgot-password" className="inline-flex min-h-11 items-center rounded-[8px] bg-[#1d3434] px-4 text-[13px] font-semibold text-white">
             {t('auth.goLogin')}
           </Link>
         </div>

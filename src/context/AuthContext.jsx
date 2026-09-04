@@ -11,8 +11,8 @@ import {
   updateProfile,
   verifyPasswordResetCode,
 } from 'firebase/auth'
-import { getFirebaseAuth, isFirebaseConfigured } from '../lib/firebase'
 import { authErrorKey } from '../lib/authErrors'
+import { getFirebaseAuth, isFirebaseConfigured } from '../lib/firebase'
 
 const AuthContext = createContext(null)
 
@@ -98,7 +98,20 @@ export function AuthProvider({ children }) {
       error.code = 'auth/missing-email'
       throw error
     }
-    await sendPasswordResetEmail(auth, nextEmail)
+    auth.useDeviceLanguage()
+    try {
+      await sendPasswordResetEmail(auth, nextEmail, {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: false,
+      })
+    } catch (caught) {
+      const code = String(caught?.code || '')
+      if (code.includes('unauthorized-continue-uri') || code.includes('invalid-continue-uri')) {
+        await sendPasswordResetEmail(auth, nextEmail)
+        return
+      }
+      throw caught
+    }
   }, [])
 
   const verifyResetCode = useCallback(async (code) => {

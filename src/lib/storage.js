@@ -40,6 +40,8 @@ export function mergeWithDefaults(loaded) {
     budgets: Array.isArray(loaded.budgets) ? loaded.budgets : [],
     goals: Array.isArray(loaded.goals) ? loaded.goals : [],
     recurring: Array.isArray(loaded.recurring) ? loaded.recurring : [],
+    ownerUid: typeof loaded.ownerUid === 'string' ? loaded.ownerUid : '',
+    ownerEmail: normalizeEmail(loaded.ownerEmail),
   }
 }
 
@@ -67,6 +69,10 @@ function indexKey() {
   return `${STORAGE_KEY}:index`
 }
 
+function ownerKey() {
+  return `${STORAGE_KEY}:owner`
+}
+
 function readIndex() {
   try {
     const raw = localStorage.getItem(indexKey())
@@ -89,9 +95,9 @@ function rememberIdentity(uid, email) {
   const normalized = normalizeEmail(email)
   if (!uid && !normalized) return
   const index = readIndex()
-  if (normalized) {
-    if (uid) index.emails[normalized] = uid
-    if (uid) index.uids[uid] = normalized
+  if (normalized && uid) {
+    index.emails[normalized] = uid
+    index.uids[uid] = normalized
   }
   writeIndex(index)
 }
@@ -106,93 +112,104 @@ function workspaceWeight(state) {
     (Array.isArray(state.transactions) ? state.transactions.length : 0) +
     (Array.isArray(state.clients) ? state.clients.length : 0) +
     (Array.isArray(state.bills) ? state.bills.length : 0) +
-    (Array.isArray(state.budgets) ? state.budgets.length : 0)
+    (Array.isArray(state.budgets) ? state.budgets.length : 0) +
+    (Array.isArray(state.goals) ? state.goals.length : 0) +
+    (Array.isArray(state.vendors) ? state.vendors.length : 0)
   )
 }
 
-function recoverWorkspace() {
-  const populated = orphanUidWorkspaces()
-    .map((key) => ({ key, state: readStored(key) }))
-    .filter((item) => workspaceWeight(item.state) > 0)
-  return populated.length === 1 ? populated[0].state : null
-}
-
-function orphanUidWorkspaces() {
-  const prefix = `${STORAGE_KEY}:`
-  const skip = new Set([STORAGE_KEY, `${STORAGE_KEY}:owner`, indexKey()])
-  const found = []
-  for (let i = 0; i < localStorage.length; i += 1) {
-    const key = localStorage.key(i)
-    if (!key || skip.has(key) || !key.startsWith(prefix)) continue
-    if (key.startsWith(`${STORAGE_KEY}:email:`)) continue
-    if (key.startsWith(`${STORAGE_KEY}:index`)) continue
-    found.push(key)
-  }
-  return found
-}
-
 function readStored(key) {
+  if (!key) return null
   const raw = localStorage.getItem(key)
   if (!raw) return null
   const parsed = JSON.parse(raw)
   return isObject(parsed) ? mergeWithDefaults(parsed) : null
 }
 
+function belongsToUser(state, uid, email) {
+  if (!state) return false
+  const normalized = normalizeEmail(email)
+  const ownerEmail = normalizeEmail(state.ownerEmail)
+  const ownerUid = String(state.ownerUid || '')
+  if (!ownerEmail && !ownerUid) return true
+  if (normalized && ownerEmail === normalized) return true
+  if (uid && ownerUid === uid) return true
+  return false
+}
+
+function pickWorkspace(candidates, uid, email) {
+  const owned = candidates.filter((state) => belongsToUser(state, uid, email))
+  if (!owned.length) return null
+  return owned.reduce((best, next) => (workspaceWeight(next) > workspaceWeight(best) ? next : best))
+}
+
+function stampWorkspace(state, uid, email) {
+  return {
+    ...state,
+    ownerUid: uid || state.ownerUid || '',
+    ownerEmail: normalizeEmail(email) || normalizeEmail(state.ownerEmail),
+  }
+}
+
+function persistIdentityKeys(state, uid, email) {
+  const stamped = stampWorkspace(state, uid, email)
+  const byEmail = emailKey(email)
+  if (byEmail) writeStored(byEmail, stamped)
+  if (uid) writeStored(uidKey(uid), stamped)
+  rememberIdentity(uid, email)
+  return stamped
+}
+
 export function loadState(uid, email) {
   try {
+    const normalized = normalizeEmail(email)
+    if (!uid && !normalized) return null
+
+    const candidates = []
     const byEmail = emailKey(email)
-    if (byEmail) {
-      const scoped = readStored(byEmail)
-      if (scoped && workspaceWeight(scoped) > 0) {
-        rememberIdentity(uid, email)
-        return scoped
-      }
-    }
+    const fromEmail = readStored(byEmail)
+    if (fromEmail) candidates.push(fromEmail)
 
     if (uid) {
-      const byUid = readStored(uidKey(uid))
-      if (byUid && workspaceWeight(byUid) > 0) {
-        if (byEmail) writeStored(byEmail, byUid)
-        rememberIdentity(uid, email)
-        return byUid
-      }
-
-      const previousUid = email ? readIndex().emails[normalizeEmail(email)] : null
-      if (previousUid && previousUid !== uid) {
-        const previous = readStored(uidKey(previousUid))
-        if (previous && workspaceWeight(previous) > 0) {
-          if (byEmail) writeStored(byEmail, previous)
-          rememberIdentity(uid, email)
-          return previous
-        }
-      }
-
-      const ownerKey = `${STORAGE_KEY}:owner`
-      const owner = localStorage.getItem(ownerKey)
-      const legacy = !owner || owner === uid ? readStored(STORAGE_KEY) : null
-      if (legacy && workspaceWeight(legacy) > 0) {
-        localStorage.setItem(ownerKey, uid || owner || '')
-        if (byEmail) writeStored(byEmail, legacy)
-        else if (uid) writeStored(uidKey(uid), legacy)
-        rememberIdentity(uid, email)
-        return legacy
-      }
-
-      const recovered = recoverWorkspace()
-      if (recovered) {
-        if (byEmail) writeStored(byEmail, recovered)
-        rememberIdentity(uid, email)
-        return recovered
-      }
-
-      if (byUid) {
-        rememberIdentity(uid, email)
-        return byUid
-      }
-      return null
+      const fromUid = readStored(uidKey(uid))
+      if (fromUid) candidates.push(fromUid)
     }
 
-    return readStored(STORAGE_KEY)
+    if (normalized) {
+      const previousUid = readIndex().emails[normalized]
+      if (previousUid && previousUid !== uid) {
+        const previous = readStored(uidKey(previousUid))
+        if (previous) candidates.push(previous)
+      }
+    }
+
+    const matched = pickWorkspace(candidates, uid, email)
+    if (matched && workspaceWeight(matched) > 0) {
+      persistIdentityKeys(matched, uid, email)
+      return matched
+    }
+
+    const owner = localStorage.getItem(ownerKey())
+    const legacy = readStored(STORAGE_KEY)
+    if (legacy && workspaceWeight(legacy) > 0) {
+      const index = readIndex()
+      const ownerEmail = normalizeEmail(owner)
+      const ownedByUid = Boolean(owner && owner === uid)
+      const ownedByEmail = Boolean(ownerEmail && ownerEmail === normalized)
+      const ownerMapsToEmail = Boolean(owner && normalized && index.uids[owner] === normalized)
+      const unclaimed = !owner
+      if (ownedByUid || ownedByEmail || ownerMapsToEmail || (unclaimed && uid && normalized && !fromEmail)) {
+        localStorage.setItem(ownerKey(), uid || owner || normalized)
+        persistIdentityKeys(legacy, uid, email)
+        return stampWorkspace(legacy, uid, email)
+      }
+    }
+
+    if (matched) {
+      rememberIdentity(uid, email)
+      return matched
+    }
+    return null
   } catch {
     return null
   }
@@ -200,10 +217,7 @@ export function loadState(uid, email) {
 
 export function saveState(state, uid, email) {
   try {
-    const key = storageKeyFor(uid, email)
-    writeStored(key, state)
-    if (uid && normalizeEmail(email)) writeStored(uidKey(uid), state)
-    rememberIdentity(uid, email)
+    persistIdentityKeys(stampWorkspace(state, uid, email), uid, email)
     return true
   } catch (error) {
     console.error('Failed to save expense data', error)

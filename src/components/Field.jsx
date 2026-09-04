@@ -2,7 +2,7 @@ import { cloneElement, isValidElement, useId } from 'react'
 import Select from './Select'
 
 export const controlClass =
-  'w-full rounded-[8px] border border-[#dfe6df] bg-white px-[12px] py-[10px] text-[13px] text-[#213432] outline-none focus:border-[#1d3434]'
+  'w-full rounded-[8px] border border-[#dfe6df] bg-white px-[12px] py-[10px] text-[15px] text-[#213432] outline-none focus:border-[#1d3434]'
 
 function InfoIcon() {
   return (
@@ -34,7 +34,7 @@ export default function Field({ label, explain, placeholder, className = '', chi
     <div className={`block min-w-0 ${className}`}>
       <div className="flex items-center gap-1.5">
         {label ? (
-          <label htmlFor={id} className="text-[12px] font-semibold text-[#223535]">
+          <label htmlFor={id} className="text-[15px] font-semibold text-[#223535]">
             {label}
           </label>
         ) : null}

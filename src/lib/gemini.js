@@ -125,7 +125,7 @@ Every user message needs a new natural-language reply in "answer". Never return 
 
 You can add personal and business records, not only chat.
 Return ONLY JSON:
-{"intent":"add"|"do"|"ask"|"help","action":"client"|"vendor"|"shop"|"employee"|"department"|"project"|"bill"|"invoice"|"budget"|"goal"|"approve"|"reject"|"reimburse"|null,"answer":string,"transaction":{"name":string,"amount":number,"type":"expense"|"income","category":string,"date":"YYYY-MM-DD","paymentMethod":"Card"|"Cash"|"Bank"|"Wallet","note":string,"shop":string,"client":string,"employee":string,"vendor":string,"billable":boolean,"reimbursable":boolean,"taxRate":number}|null,"payload":{"name":string,"amount":number,"city":string,"type":string,"role":string,"party":string,"category":string,"client":string,"employee":string,"vendor":string,"department":string,"deadline":string}|null}
+{"intent":"add"|"do"|"ask"|"help","action":"client"|"vendor"|"shop"|"employee"|"department"|"project"|"bill"|"invoice"|"budget"|"goal"|"approve"|"reject"|"reimburse"|null,"answer":string,"transaction":{"name":string,"amount":number,"type":"expense"|"income","category":string,"date":"YYYY-MM-DD","paymentMethod":"Card"|"Cash"|"Bank"|"UPI"|"Wallet","note":string,"shop":string,"client":string,"employee":string,"vendor":string,"billable":boolean,"reimbursable":boolean,"taxRate":number}|null,"payload":{"name":string,"amount":number,"city":string,"type":string,"role":string,"party":string,"category":string,"client":string,"employee":string,"vendor":string,"department":string,"deadline":string}|null}
 
 Rules:
 - Always fill "answer" with a fresh reply to the latest user message.

@@ -23,3 +23,7 @@ export function getFirebaseAuth() {
   const app = getFirebaseApp()
   return app ? getAuth(app) : null
 }
+
+export function passwordResetSender() {
+  return `noreply@${firebaseConfig.authDomain}`
+}

@@ -23,6 +23,7 @@ Disallow: /analytics
 Disallow: /pricing
 Disallow: /login
 Disallow: /register
+Disallow: /forgot-password
 Disallow: /reset-password
 
 User-agent: Mediapartners-Google

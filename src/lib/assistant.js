@@ -29,8 +29,9 @@ const DATE_WORDS = {
 
 const PAYMENT_WORDS = [
   { needles: ['cash', 'नकद'], method: 'Cash' },
-  { needles: ['bank', 'neft', 'imps', 'ach', 'बैंक'], method: 'Bank' },
-  { needles: ['wallet', 'upi', 'gpay', 'paytm', 'phonepe', 'वॉलेट'], method: 'Wallet' },
+  { needles: ['bank transfer', 'bank', 'neft', 'imps', 'ach', 'rtgs', 'बैंक'], method: 'Bank' },
+  { needles: ['upi', 'gpay', 'google pay', 'paytm', 'phonepe', 'bhim', 'यूपीआई'], method: 'UPI' },
+  { needles: ['wallet', 'वॉलेट'], method: 'Wallet' },
   { needles: ['card', 'visa', 'mastercard', 'credit', 'debit', 'कार्ड'], method: 'Card' },
 ]
 
