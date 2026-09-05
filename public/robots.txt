@@ -29,4 +29,4 @@ Disallow: /reset-password
 User-agent: Mediapartners-Google
 Allow: /
 
-Sitemap: https://expense-manager-two-drab.vercel.app/sitemap.xml
+Sitemap: https://expenseso.vercel.app/sitemap.xml

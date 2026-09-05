@@ -5,7 +5,7 @@
       "127.0.0.1",
       "expense-manager-8eb96.firebaseapp.com",
       "expense-manager-8eb96.web.app",
-      "expense-manager-two-drab.vercel.app"
+      "expenseso.vercel.app"
     ],
     "providers": {
       "emailPassword": true,
@@ -17,7 +17,7 @@
           "http://127.0.0.1",
           "https://expense-manager-8eb96.web.app",
           "https://expense-manager-8eb96.firebaseapp.com",
-          "https://expense-manager-two-drab.vercel.app"
+          "https://expenseso.vercel.app"
         ]
       }
     }
