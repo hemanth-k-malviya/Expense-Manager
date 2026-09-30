@@ -13,7 +13,7 @@ export default function LanguageSwitcher({ compact = false }) {
         aria-label={t('settings.language')}
         className={
           compact
-            ? 'max-w-[11rem] rounded-full border border-[#dfe6df] bg-white px-2 py-1.5 text-[13px] text-[#46504c] outline-none'
+            ? 'max-w-[9.5rem] rounded-full border-0 bg-transparent px-2.5 py-1.5 text-[12px] font-medium text-[#46504c] outline-none hover:bg-[#f3f6f1]'
             : 'mt-1 w-full rounded-[8px] border border-[#dfe6df] bg-white px-[12px] py-[10px] text-[15px] text-[#213432] outline-none'
         }
       >

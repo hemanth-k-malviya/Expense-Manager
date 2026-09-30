@@ -17,27 +17,19 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
 }
 
 body {
@@ -280,7 +272,14 @@ canvas {
 }
 
 .page-title {
-  font-size: clamp(1.45rem, 5vw, 2rem);
+  font-size: clamp(1.35rem, 5.5vw, 2rem);
   letter-spacing: -0.04em;
+  line-height: 1.2;
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  .select-trigger {
+    min-height: 44px;
+  }
 }

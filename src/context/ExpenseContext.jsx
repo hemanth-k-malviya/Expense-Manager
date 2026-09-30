@@ -713,6 +713,7 @@ export function ExpenseProvider({ children }) {
       workspace: profile.workspace,
       currency: profile.currency,
       language: profile.language,
+      aiEnabled: profile.aiEnabled,
       geminiApiKey: profile.geminiApiKey || '',
     })
     setProfile(empty.profile)
@@ -734,7 +735,7 @@ export function ExpenseProvider({ children }) {
     setBills(empty.bills)
     goToToday()
     addToast(tr('toast.reset'), 'success')
-  }, [addToast, email, goToToday, profile.currency, profile.geminiApiKey, profile.language, profile.name, profile.workspace, uid])
+  }, [addToast, email, goToToday, profile.aiEnabled, profile.currency, profile.geminiApiKey, profile.language, profile.name, profile.workspace, uid])
 
   const value = useMemo(
     () => ({

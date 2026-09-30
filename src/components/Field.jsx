@@ -2,7 +2,7 @@ import { cloneElement, isValidElement, useId } from 'react'
 import Select from './Select'
 
 export const controlClass =
-  'w-full rounded-[8px] border border-[#dfe6df] bg-white px-[12px] py-[10px] text-[15px] text-[#213432] outline-none focus:border-[#1d3434]'
+  'min-h-11 w-full rounded-[8px] border border-[#dfe6df] bg-white px-3 py-2.5 text-[15px] text-[#213432] outline-none focus:border-[#1d3434] sm:px-[12px] sm:py-[10px]'
 
 function InfoIcon() {
   return (

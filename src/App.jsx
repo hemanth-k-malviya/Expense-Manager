@@ -22,6 +22,7 @@ import Disclaimer from './pages/public/Disclaimer'
 import GuideArticle from './pages/public/GuideArticle'
 import Guides from './pages/public/Guides'
 import Landing from './pages/public/Landing'
+import Demo from './pages/public/Demo'
 import NotFound from './pages/public/NotFound'
 import Privacy from './pages/public/Privacy'
 import Terms from './pages/public/Terms'
@@ -51,6 +52,7 @@ export default function App() {
           <Routes>
           <Route element={<PublicLayout />}>
             <Route path="/" element={<Landing />} />
+            <Route path="/demo" element={<Demo />} />
             <Route path="/guides" element={<Guides />} />
             <Route path="/guides/:slug" element={<GuideArticle />} />
             <Route path="/about" element={<About />} />

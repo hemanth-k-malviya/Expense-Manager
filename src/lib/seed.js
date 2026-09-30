@@ -11,6 +11,7 @@ export function getEmptyState(profile = {}) {
       workspace: profile.workspace?.trim() || 'Personal workspace',
       currency: profile.currency || 'USD',
       language: profile.language || 'en',
+      aiEnabled: Boolean(profile.aiEnabled),
       geminiApiKey: profile.geminiApiKey || '',
       enabledBusinessFeatures: [...BUSINESS_FEATURE_IDS],
     },

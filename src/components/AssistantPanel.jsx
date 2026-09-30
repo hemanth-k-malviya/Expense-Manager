@@ -230,7 +230,7 @@ export default function AssistantPanel({ seedPrompt = '', onClose }) {
 
   return (
     <div
-      className="mb-0 flex h-[min(calc(100dvh-10.5rem),540px)] w-[min(calc(100vw-2rem),380px)] flex-col overflow-hidden rounded-[20px] border border-[#dce4dc] bg-white shadow-[0_18px_50px_rgba(29,52,52,0.22)] md:h-[min(68dvh,540px)]"
+      className="mb-0 flex h-[min(calc(100dvh-11rem),540px)] w-[min(calc(100vw-1.5rem),380px)] flex-col overflow-hidden rounded-[20px] border border-[#dce4dc] bg-white shadow-[0_18px_50px_rgba(29,52,52,0.22)] md:h-[min(68dvh,540px)]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="ai-chat-title"

@@ -2,6 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var params = new URLSearchParams(String(location.hash || '').replace(/^#/, ''))
+          var token = params.get('id_token')
+          if (!token) return
+          location.replace('expensesso://google-auth?id_token=' + encodeURIComponent(token))
+        } catch (err) {}
+      })()
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=expenseso1" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=expenseso1" />
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=expenseso1" />
@@ -9,10 +19,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1d3434" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <title>Expense So — Expense Manager</title>
+    <title>Expense So — Track Expenses and Manage Your Budget Easily</title>
     <meta
       name="description"
-      content="Expense So is an expense manager for personal and business money. Track spending, books, budgets, and vendors. Read public guides without signing in."
+      content="Expense So helps you track daily expenses, set monthly budgets, and see where your money goes. Start Tracking free or Try Demo without signing in."
     />
     <meta name="author" content="Hemant Maviya" />
     <meta name="robots" content="index, follow" />
@@ -23,6 +33,28 @@
     ></script>
   </head>
   <body>
+    <noscript>
+      <main style="max-width:720px;margin:2rem auto;padding:0 1rem;font-family:sans-serif;line-height:1.6;color:#213432">
+        <h1>Track Your Expenses and Manage Your Budget Easily</h1>
+        <p>
+          Expense So is a free online expense tracker. Record daily spending, set category budgets, keep personal and
+          shop money separate, and understand your month without a messy spreadsheet.
+        </p>
+        <p>
+          <a href="/register">Start Tracking</a>
+          ·
+          <a href="/demo">Try Demo</a>
+          ·
+          <a href="/guides">Read Guides</a>
+        </p>
+        <h2>What Expense So does</h2>
+        <p>
+          Log income and expenses with a category and payment method. Budgets show what is left before month-end.
+          Optional books keep household spending apart from a small shop or freelance practice. Public guides and a
+          sample demo work without an account.
+        </p>
+      </main>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

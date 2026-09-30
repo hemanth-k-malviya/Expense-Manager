@@ -11,6 +11,7 @@ import TransactionForm from './TransactionForm'
 import AssistantPanel from './AssistantPanel'
 import ReminderPopup from './ReminderPopup'
 import { ASSISTANT_EVENT } from '../lib/assistant'
+import { isAiAssistantEnabled } from '../lib/gemini'
 import { formVariantFor } from '../lib/ledger'
 
 const pageTitleKeys = {
@@ -34,8 +35,6 @@ const pageTitleKeys = {
 const mobileTabs = [
   { to: '/app', labelKey: 'tabs.home', icon: '◫', end: true },
   { to: '/transactions', labelKey: 'tabs.activity', icon: '↔' },
-  { to: '/budgets', labelKey: 'nav.budgets', icon: '▤' },
-  { to: '/books', labelKey: 'nav.books', icon: '◇' },
 ]
 
 export default function Layout() {
@@ -47,7 +46,6 @@ export default function Layout() {
     alerts,
     addTransaction,
     isPro,
-    isBusiness,
     t,
     dir,
   } = useExpenses()
@@ -65,15 +63,24 @@ export default function Layout() {
 
   const title = t(pageTitleKeys[location.pathname] || 'nav.overview')
   const unread = alerts.length
+  const aiAvailable = isAiAssistantEnabled(profile)
 
   useEffect(() => {
     function onAssistant(event) {
+      if (!isAiAssistantEnabled(profile)) return
       setAssistantSeed(event.detail?.prompt || '')
       setAssistantOpen(true)
     }
     window.addEventListener(ASSISTANT_EVENT, onAssistant)
     return () => window.removeEventListener(ASSISTANT_EVENT, onAssistant)
-  }, [])
+  }, [profile])
+
+  useEffect(() => {
+    if (!aiAvailable && assistantOpen) {
+      setAssistantOpen(false)
+      setAssistantSeed('')
+    }
+  }, [aiAvailable, assistantOpen])
 
   useEffect(() => {
     setMobileOpen(false)
@@ -183,7 +190,7 @@ export default function Layout() {
         </div>
       </>
     ),
-    [handleLogout, initials, isBusiness, isPro, profile.name, profile.workspace, t],
+    [handleLogout, initials, isPro, profile.name, profile.workspace, t],
   )
 
   return (
@@ -208,188 +215,258 @@ export default function Layout() {
 
         <section className="no-scrollbar flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-y-auto">
           <header
-            className="sticky top-0 z-30 flex min-h-[64px] items-center justify-between gap-3 border-b border-[#e4e8df] bg-[#fbfcf9]/95 px-4 backdrop-blur sm:min-h-[76px] sm:px-6 lg:px-8"
-            style={{
-              paddingTop: 'env(safe-area-inset-top)',
-              paddingLeft: 'max(1rem, env(safe-area-inset-left))',
-              paddingRight: 'max(1rem, env(safe-area-inset-right))',
-            }}
+            className="sticky top-0 z-30 border-b border-[#e7ebe3] bg-[#fbfcf9]/92 backdrop-blur-md"
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
           >
-            <div className="flex min-w-0 items-center gap-3 text-[15px] text-[#8e9690]">
-              <button type="button" className="hidden h-10 w-10 flex-shrink-0 place-items-center rounded-full text-[20px] text-[#46504c] hover:bg-[#eef1ed] md:grid lg:hidden" onClick={() => setMobileOpen(true)} aria-label={t('layout.openMenu')}>
-                ☰
-              </button>
-              <span className="min-w-0 truncate">
-                <span className="hidden sm:inline">{t('layout.workspace')} <span className="mx-[10px] text-[#c1c8c0]">/</span></span>
-                <b className="text-[#313b38]">{title}</b>
-              </span>
-            </div>
-
-            <div className="flex flex-shrink-0 items-center gap-2 sm:gap-4">
-              <LanguageSwitcher compact />
-              <button
-                type="button"
-                onClick={() => setAddOpen(true)}
-                className="hidden min-h-9 rounded-[7px] bg-[#e96d52] px-3 py-2 text-[15px] font-bold text-white md:inline-flex"
-              >
-                {t('layout.add')}
-              </button>
-
-              <div className="relative">
+            <div
+              className="mx-auto flex min-h-[56px] w-full max-w-[1360px] items-center justify-between gap-3 px-4 py-2 sm:min-h-[64px] sm:px-6 lg:px-8"
+              style={{
+                paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+                paddingRight: 'max(1rem, env(safe-area-inset-right))',
+              }}
+            >
+              <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <button
                   type="button"
-                  className="relative grid h-10 w-10 place-items-center rounded-full text-[21px] text-[#67726d] hover:bg-[#eef1ed]"
-                  aria-label={t('layout.notifications')}
-                  onClick={() => {
-                    setAccountOpen(false)
-                    setNotifyOpen((open) => !open)
-                  }}
+                  className="hidden h-10 w-10 flex-shrink-0 place-items-center rounded-full text-[18px] text-[#46504c] hover:bg-[#eef1ed] md:grid lg:hidden"
+                  onClick={() => setMobileOpen(true)}
+                  aria-label={t('layout.openMenu')}
                 >
-                  ♢
-                  {unread > 0 ? <i className="absolute right-2 top-2 h-[5px] w-[5px] rounded-full bg-[#e96d52]" /> : null}
+                  ☰
                 </button>
-                {notifyOpen ? (
-                  <div className="absolute right-0 top-11 z-20 w-[min(calc(100vw-1.5rem),280px)] rounded-[12px] border border-[#e4e8df] bg-white p-3 shadow-lg">
-                    <p className="mb-2 text-[14px] font-semibold text-[#263b39]">{t('layout.alerts')}</p>
-                    {!isPro && alerts.length === 0 ? (
-                      <div>
-                        <p className="text-[14px] text-[#7d8782]">{t('layout.alertsLocked')}</p>
-                      </div>
-                    ) : alerts.length === 0 ? (
-                      <p className="text-[14px] text-[#7d8782]">{t('layout.onTrack')}</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {alerts.map((alert) => (
-                          <li key={alert.id} className="rounded-[8px] bg-[#f7f9f2] px-3 py-2 text-[14px] text-[#46504c]">
-                            {alert.message}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ) : null}
+                <div className="min-w-0">
+                  <p className="hidden text-[11px] font-medium tracking-[0.04em] text-[#8e9690] sm:block">
+                    {t('layout.workspace')}
+                  </p>
+                  <h1 className="truncate font-['Space_Grotesk'] text-[17px] font-semibold leading-tight tracking-[-0.02em] text-[#1d3434] sm:mt-0.5 sm:text-[18px]">
+                    {title}
+                  </h1>
+                </div>
               </div>
 
-              <div className="relative">
+              <div className="flex flex-shrink-0 items-center gap-1 rounded-full border border-[#e4e8df] bg-white/90 p-1 shadow-[0_1px_2px_rgba(29,52,52,0.04)] sm:gap-1.5 sm:px-1.5">
+                <div className="hidden sm:block">
+                  <LanguageSwitcher compact />
+                </div>
                 <button
                   type="button"
-                  className="flex items-center gap-2 text-[15px] text-[#46504c]"
-                  aria-label={t('auth.account')}
-                  aria-expanded={accountOpen}
-                  onClick={() => {
-                    setNotifyOpen(false)
-                    setAccountOpen((open) => !open)
-                  }}
+                  onClick={() => setAddOpen(true)}
+                  className="hidden h-9 items-center rounded-full bg-[#e96d52] px-3.5 text-[13px] font-semibold text-white md:inline-flex"
                 >
-                  <span className="grid h-[34px] w-[34px] place-items-center rounded-full bg-[#7b73b7] text-[12px] font-bold text-white">{initials}</span>
-                  <span className="hidden lg:inline">{firstName(profile.name)}</span>
-                  {isBusiness ? (
-                    <span className="hidden rounded-full bg-[#1d3434] px-2 py-0.5 text-[11px] font-bold text-[#d7ef6b] sm:inline">{t('common.biz')}</span>
-                  ) : null}
+                  {t('layout.add')}
                 </button>
-                {accountOpen ? (
-                  <div className={`absolute top-11 z-20 w-[min(calc(100vw-1.5rem),220px)] rounded-[12px] border border-[#e4e8df] bg-white p-2 shadow-lg ${dir === 'rtl' ? 'left-0' : 'right-0'}`}>
-                    <p className="truncate px-2 py-1.5 text-[13px] text-[#7d8782]">{user?.email || profile.name}</p>
-                    <NavLink
-                      to="/settings"
-                      onClick={() => setAccountOpen(false)}
-                      className="block rounded-[8px] px-2 py-2 text-[14px] font-medium text-[#46504c] hover:bg-[#f7f9f2]"
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="relative grid h-9 w-9 place-items-center rounded-full text-[18px] text-[#5f6b66] transition hover:bg-[#f3f6f1]"
+                    aria-label={t('layout.notifications')}
+                    onClick={() => {
+                      setAccountOpen(false)
+                      setNotifyOpen((open) => !open)
+                    }}
+                  >
+                    ♢
+                    {unread > 0 ? (
+                      <i className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#e96d52] ring-2 ring-white" />
+                    ) : null}
+                  </button>
+                  {notifyOpen ? (
+                    <div className="absolute right-0 top-11 z-20 w-[min(calc(100vw-1.5rem),280px)] rounded-[14px] border border-[#e4e8df] bg-white p-3 shadow-[0_12px_32px_rgba(29,52,52,0.14)]">
+                      <p className="mb-2 text-[13px] font-semibold text-[#263b39]">{t('layout.alerts')}</p>
+                      {!isPro && alerts.length === 0 ? (
+                        <p className="text-[13px] leading-5 text-[#7d8782]">{t('layout.alertsLocked')}</p>
+                      ) : alerts.length === 0 ? (
+                        <p className="text-[13px] leading-5 text-[#7d8782]">{t('layout.onTrack')}</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {alerts.map((alert) => (
+                            <li key={alert.id} className="rounded-[10px] bg-[#f7f9f2] px-3 py-2 text-[13px] leading-5 text-[#46504c]">
+                              {alert.message}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="flex h-9 items-center gap-2 rounded-full pl-0.5 pr-1 text-[13px] text-[#46504c] transition hover:bg-[#f3f6f1] sm:pr-2"
+                    aria-label={t('auth.account')}
+                    aria-expanded={accountOpen}
+                    onClick={() => {
+                      setNotifyOpen(false)
+                      setAccountOpen((open) => !open)
+                    }}
+                  >
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-[#1d3434] text-[11px] font-bold text-[#d7ef6b]">
+                      {initials}
+                    </span>
+                    <span className="hidden max-w-[7rem] truncate font-medium lg:inline">{firstName(profile.name)}</span>
+                  </button>
+                  {accountOpen ? (
+                    <div
+                      className={`absolute top-11 z-20 w-[min(calc(100vw-1.5rem),220px)] rounded-[14px] border border-[#e4e8df] bg-white p-2 shadow-[0_12px_32px_rgba(29,52,52,0.14)] ${
+                        dir === 'rtl' ? 'left-0' : 'right-0'
+                      }`}
                     >
-                      {t('nav.settings')}
-                    </NavLink>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="block w-full rounded-[8px] px-2 py-2 text-left text-[14px] font-semibold text-[#c45b45] hover:bg-[#f7f9f2]"
-                    >
-                      {t('auth.signOut')}
-                    </button>
-                  </div>
-                ) : null}
+                      <p className="truncate px-2.5 py-2 text-[12px] text-[#7d8782]">{user?.email || profile.name}</p>
+                      <NavLink
+                        to="/settings"
+                        onClick={() => setAccountOpen(false)}
+                        className="block rounded-[10px] px-2.5 py-2.5 text-[14px] font-medium text-[#46504c] hover:bg-[#f7f9f2]"
+                      >
+                        {t('nav.settings')}
+                      </NavLink>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="block w-full rounded-[10px] px-2.5 py-2.5 text-left text-[14px] font-semibold text-[#c45b45] hover:bg-[#f7f9f2]"
+                      >
+                        {t('auth.signOut')}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
           </header>
 
-          <div className="mx-auto w-full max-w-[1360px] flex-1 px-4 py-6 pb-28 sm:px-6 sm:pt-8 md:pb-10 lg:px-8 lg:py-[43px]">
+          <div className="mx-auto w-full max-w-[1360px] flex-1 px-4 py-5 pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-8 sm:pb-28 md:pb-10 lg:px-8 lg:py-[43px]">
             <Outlet />
           </div>
         </section>
       </main>
 
-      <button
-        type="button"
-        onClick={() => setAddOpen(true)}
-        className={`fixed z-30 grid h-14 w-14 place-items-center rounded-full bg-[#e96d52] text-2xl font-bold text-white shadow-[0_8px_20px_rgba(233,109,82,0.4)] md:hidden ${dir === 'rtl' ? 'right-4' : 'left-4'}`}
-        style={{ bottom: 'calc(4.75rem + env(safe-area-inset-bottom))' }}
-        aria-label={t('layout.addTransaction')}
-      >
-        +
-      </button>
-
-      {assistantOpen ? (
+      {aiAvailable && assistantOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-[35] bg-[#1d3434]/25 md:hidden"
+          className="fixed inset-0 z-[35] bg-[#1d3434]/30 md:bg-[#1d3434]/20"
           aria-label={t('common.close')}
           onClick={closeAssistant}
         />
       ) : null}
 
-      <div
-        className={`fixed z-40 flex flex-col ${dir === 'rtl' ? 'items-start left-4 lg:left-[calc(272px+1.5rem)]' : 'items-end right-4'} bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-6`}
-      >
-        {assistantOpen ? (
-          <AssistantPanel seedPrompt={assistantSeed} onClose={closeAssistant} />
-        ) : null}
-        <button
-          type="button"
-          onClick={() => {
-            if (assistantOpen) {
-              closeAssistant()
-              return
-            }
-            setAssistantSeed('')
-            setAssistantOpen(true)
-          }}
-          className={`mt-3 grid h-14 w-14 place-items-center rounded-full shadow-[0_10px_24px_rgba(29,52,52,0.28)] transition ${
-            assistantOpen ? 'bg-[#e96d52] text-white' : 'bg-[#1d3434] text-[#d7ef6b]'
-          }`}
-          aria-label={assistantOpen ? t('common.close') : t('ai.open')}
-          aria-expanded={assistantOpen}
+      {aiAvailable && assistantOpen ? (
+        <div
+          className={`fixed z-40 flex justify-center px-3 md:justify-end ${dir === 'rtl' ? 'left-0 right-0 md:left-4 md:right-auto lg:left-[calc(272px+1rem)]' : 'left-0 right-0 md:right-4 md:left-auto'}`}
+          style={{ bottom: 'calc(5.25rem + env(safe-area-inset-bottom))' }}
         >
-          {assistantOpen ? (
-            <span className="text-2xl leading-none">×</span>
-          ) : (
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-[#c9e75b] text-[16px] font-bold text-[#1d3434]">✦</span>
-          )}
-        </button>
-      </div>
+          <div className="md:hidden">
+            <AssistantPanel seedPrompt={assistantSeed} onClose={closeAssistant} />
+          </div>
+        </div>
+      ) : null}
+
+      {aiAvailable ? (
+        <div
+          className={`fixed z-40 hidden flex-col md:flex ${dir === 'rtl' ? 'items-start left-4 lg:left-[calc(272px+1.5rem)]' : 'items-end right-4'} bottom-6`}
+        >
+          {assistantOpen ? <AssistantPanel seedPrompt={assistantSeed} onClose={closeAssistant} /> : null}
+          <button
+            type="button"
+            onClick={() => {
+              if (assistantOpen) {
+                closeAssistant()
+                return
+              }
+              setAssistantSeed('')
+              setAssistantOpen(true)
+            }}
+            className={`mt-3 grid h-12 w-12 place-items-center rounded-full shadow-[0_10px_24px_rgba(29,52,52,0.22)] transition ${
+              assistantOpen ? 'bg-[#e96d52] text-white' : 'bg-[#1d3434] text-[#d7ef6b]'
+            }`}
+            aria-label={assistantOpen ? t('common.close') : t('ai.open')}
+            aria-expanded={assistantOpen}
+          >
+            {assistantOpen ? (
+              <span className="text-2xl leading-none">×</span>
+            ) : (
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-[#c9e75b] text-[14px] font-bold text-[#1d3434]">✦</span>
+            )}
+          </button>
+        </div>
+      ) : null}
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[#e4e8df] bg-[#fbfcf9]/95 backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 overflow-visible border-t border-[#e4e8df] bg-[#fbfcf9]/96 backdrop-blur md:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label="Mobile navigation"
       >
-        {mobileTabs.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) =>
-              `flex min-h-14 flex-col items-center justify-center gap-1 text-[12px] ${isActive ? 'text-[#1d3434]' : 'text-[#7d8782]'}`
-            }
+        <div className="grid grid-cols-5 items-end overflow-visible px-1 pt-2">
+          {mobileTabs.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                `flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 px-1 text-[11px] leading-tight ${isActive ? 'text-[#1d3434]' : 'text-[#7d8782]'}`
+              }
+            >
+              <span className="text-[18px] leading-none">{item.icon}</span>
+              <span className="max-w-full truncate">{t(item.labelKey)}</span>
+            </NavLink>
+          ))}
+
+          <div className="relative flex min-h-[3.5rem] flex-col items-center justify-end pb-1">
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="absolute -top-5 grid h-[3.25rem] w-[3.25rem] place-items-center rounded-full bg-[#e96d52] text-[1.65rem] font-semibold leading-none text-white shadow-[0_8px_18px_rgba(233,109,82,0.38)]"
+              aria-label={t('layout.addTransaction')}
+            >
+              +
+            </button>
+            <span className="mt-7 text-[11px] font-medium leading-tight text-[#7d8782]">{t('tabs.add')}</span>
+          </div>
+
+          {aiAvailable ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (assistantOpen) {
+                  closeAssistant()
+                  return
+                }
+                setAssistantSeed('')
+                setAssistantOpen(true)
+              }}
+              className={`flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 px-1 text-[11px] leading-tight ${
+                assistantOpen ? 'text-[#1d3434]' : 'text-[#7d8782]'
+              }`}
+              aria-label={t('ai.open')}
+              aria-expanded={assistantOpen}
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-[#1d3434] text-[12px] font-bold text-[#c9e75b]">✦</span>
+              <span className="max-w-full truncate">{t('tabs.ai')}</span>
+            </button>
+          ) : (
+            <NavLink
+              to="/budgets"
+              className={({ isActive }) =>
+                `flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 px-1 text-[11px] leading-tight ${isActive ? 'text-[#1d3434]' : 'text-[#7d8782]'}`
+              }
+            >
+              <span className="text-[18px] leading-none">▤</span>
+              <span className="max-w-full truncate">{t('nav.budgets')}</span>
+            </NavLink>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 px-1 text-[11px] leading-tight text-[#7d8782]"
           >
-            <span className="text-[18px]">{item.icon}</span>
-            {t(item.labelKey)}
-          </NavLink>
-        ))}
-        <button type="button" onClick={() => setMobileOpen(true)} className="flex min-h-14 flex-col items-center justify-center gap-1 text-[12px] text-[#7d8782]">
-          <span className="text-[18px]">☰</span>
-          {t('tabs.menu')}
-        </button>
+            <span className="text-[18px] leading-none">☰</span>
+            <span className="max-w-full truncate">{t('tabs.menu')}</span>
+          </button>
+        </div>
       </nav>
 
-      {reminderOpen && alerts.length > 0 && !addOpen && !assistantOpen ? (
+      {reminderOpen && alerts.length > 0 && !addOpen && !(aiAvailable && assistantOpen) ? (
         <ReminderPopup alerts={alerts} onClose={() => setReminderOpen(false)} />
       ) : null}
 

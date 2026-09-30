@@ -15,8 +15,12 @@ export function geminiKeyFrom(profile) {
   return fromProfile || fromEnv
 }
 
+export function isAiAssistantEnabled(profile) {
+  return Boolean(profile?.aiEnabled && String(profile?.geminiApiKey || '').trim())
+}
+
 function canUseCloud(profile) {
-  return Boolean(geminiKeyFrom(profile) || import.meta.env.DEV)
+  return Boolean(profile?.aiEnabled && geminiKeyFrom(profile))
 }
 
 function normalizeTransaction(raw, snapshot) {

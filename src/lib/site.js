@@ -43,6 +43,7 @@ export function isAppPath(path) {
 }
 
 export const PUBLIC_NAV = [
+  { to: '/demo', labelKey: 'site.nav.demo' },
   { to: '/guides', labelKey: 'site.nav.guides' },
   { to: '/about', labelKey: 'site.nav.about' },
   { to: '/contact', labelKey: 'site.nav.contact' },
