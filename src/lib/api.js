@@ -1,7 +1,17 @@
 const API_TOKEN_KEY = 'expense-so-api-token'
 const API_USER_KEY = 'expense-so-api-user'
 
-const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api').replace(/\/$/, '')
+/** Ensure base ends with /api — production often sets host only and misses the prefix. */
+export function normalizeApiBaseUrl(raw) {
+  let base = String(raw || 'http://localhost:3000/api').trim().replace(/\/+$/, '')
+  if (!base) base = 'http://localhost:3000/api'
+  if (!/\/api$/i.test(base)) {
+    base = `${base}/api`
+  }
+  return base
+}
+
+const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL)
 
 export function getApiToken() {
   return localStorage.getItem(API_TOKEN_KEY)

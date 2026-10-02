@@ -71,9 +71,25 @@ export function AuthProvider({ children }) {
       }
 
       const idToken = await nextFirebaseUser.getIdToken()
-      const data = await syncFirebaseWithApi(idToken)
-      applyApiSession(data)
-      return data
+
+      try {
+        const data = await syncFirebaseWithApi(idToken)
+        applyApiSession(data)
+        return data
+      } catch (error) {
+        // API protect() already accepts Firebase ID tokens — keep the user signed in.
+        const fallbackUser = {
+          id: nextFirebaseUser.uid,
+          firebaseUid: nextFirebaseUser.uid,
+          email: nextFirebaseUser.email || '',
+          name: nextFirebaseUser.displayName || nextFirebaseUser.email?.split('@')[0] || '',
+        }
+        applyApiSession({ token: idToken, user: fallbackUser })
+        if (import.meta.env.DEV) {
+          console.warn('API /auth/firebase unavailable; using Firebase token for API calls', error?.message || error)
+        }
+        return { token: idToken, user: fallbackUser, fallback: true }
+      }
     },
     [applyApiSession, clearSession],
   )
@@ -100,8 +116,9 @@ export function AuthProvider({ children }) {
           clearSession()
         }
       } catch (error) {
-        console.error('Failed to sync Firebase user with API', error)
-        // Keep Firebase session; API sync can be retried on next load
+        if (import.meta.env.DEV) {
+          console.error('Failed to sync Firebase user with API', error)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -154,14 +171,16 @@ export function AuthProvider({ children }) {
       if (auth) {
         try {
           const credential = await signInWithEmailAndPassword(auth, email, password)
-          await syncFirebaseSession(credential.user)
+          const synced = await syncFirebaseSession(credential.user)
 
-          // Ensure API password login stays linked for the same email
-          try {
-            const data = await apiLogin({ email, password })
-            applyApiSession(data)
-          } catch {
-            // Firebase sync already created the Mongo user; password may not be set yet
+          // Link API password login only when we still lack a real API JWT
+          if (synced?.fallback) {
+            try {
+              const data = await apiLogin({ email, password })
+              applyApiSession(data)
+            } catch {
+              // Firebase token fallback already applied
+            }
           }
 
           return credential.user
