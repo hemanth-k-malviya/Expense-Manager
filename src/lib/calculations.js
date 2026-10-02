@@ -4,6 +4,27 @@ export function sumByType(transactions, type) {
     .reduce((sum, transaction) => sum + Number(transaction.amount), 0)
 }
 
+/** Latest activity first: createdAt, then date, then id. */
+export function compareTransactionsNewest(a, b) {
+  const byCreated = String(b?.createdAt || '').localeCompare(String(a?.createdAt || ''))
+  if (byCreated) return byCreated
+  const byDate = String(b?.date || '').localeCompare(String(a?.date || ''))
+  if (byDate) return byDate
+  return String(b?.id || '').localeCompare(String(a?.id || ''))
+}
+
+export function compareTransactionsOldest(a, b) {
+  return compareTransactionsNewest(b, a)
+}
+
+export function sortTransactions(transactions, mode = 'newest') {
+  const next = [...(transactions || [])]
+  if (mode === 'oldest') return next.sort(compareTransactionsOldest)
+  if (mode === 'amount-desc') return next.sort((a, b) => Number(b.amount) - Number(a.amount))
+  if (mode === 'amount-asc') return next.sort((a, b) => Number(a.amount) - Number(b.amount))
+  return next.sort(compareTransactionsNewest)
+}
+
 export function categoryTotals(transactions, type = 'expense') {
   const totals = new Map()
 
@@ -128,7 +149,7 @@ export function transactionsToCsv(transactions) {
     'Note',
   ]
   const rows = [...transactions]
-    .sort((a, b) => b.date.localeCompare(a.date) || String(b.createdAt).localeCompare(String(a.createdAt)))
+    .sort(compareTransactionsNewest)
     .map((transaction) => [
       transaction.date,
       transaction.type,

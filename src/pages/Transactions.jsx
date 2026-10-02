@@ -7,6 +7,7 @@ import TransactionRow from '../components/TransactionRow'
 import Select from '../components/Select'
 import { useExpenses } from '../context/ExpenseContext'
 import { categoryLabel } from '../i18n'
+import { sortTransactions } from '../lib/calculations'
 import { formatMoney } from '../lib/format'
 import { formVariantFor, matchesLedger, payableReimbursementTotal } from '../lib/ledger'
 
@@ -50,14 +51,7 @@ export default function Transactions() {
       return true
     })
 
-    next.sort((a, b) => {
-      if (sort === 'oldest') return a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt)
-      if (sort === 'amount-desc') return b.amount - a.amount
-      if (sort === 'amount-asc') return a.amount - b.amount
-      return b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)
-    })
-
-    return next
+    return sortTransactions(next, sort)
   }, [category, from, isBusiness, ledger, query, sort, to, transactions, type])
 
   const income = filtered.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount, 0)

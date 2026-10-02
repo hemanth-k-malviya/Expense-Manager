@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { categoryTotals, spentByCategory, sumByType, transactionsToCsv } from '../lib/calculations'
+import { categoryTotals, compareTransactionsNewest, spentByCategory, sumByType, transactionsToCsv } from '../lib/calculations'
 import { createId, isInMonth, shiftMonth, todayISO } from '../lib/dates'
 import { downloadFile, initialsFromName } from '../lib/format'
 import { materializeRecurring } from '../lib/recurring'
@@ -10,6 +10,7 @@ import { defaultSubscription } from '../lib/subscription'
 import { collectReminders } from '../lib/books'
 import { buildBackupFile } from '../lib/backup'
 import { isPersonalEntry } from '../lib/ledger'
+import { fetchWorkspace, saveWorkspace } from '../lib/api'
 import { applyDocumentLanguage, DEFAULT_LANGUAGE, detectLanguage, languageMeta, translate } from '../i18n'
 import { useAuth } from './AuthContext'
 
@@ -28,12 +29,14 @@ function initializeStore(uid, email) {
 }
 
 export function ExpenseProvider({ children }) {
-  const { user } = useAuth()
+  const { user, apiReady, apiToken } = useAuth()
   const uid = user?.uid
   const email = user?.email || ''
   const now = new Date()
   const initial = useMemo(() => initializeStore(uid, email), [uid, email])
   const hydrated = useRef(false)
+  const apiHydrated = useRef(false)
+  const skipNextPersist = useRef(false)
 
   const [profile, setProfile] = useState(initial.profile)
   const [subscription, setSubscription] = useState(initial.subscription ?? defaultSubscription())
@@ -92,14 +95,87 @@ export function ExpenseProvider({ children }) {
     [profile, subscription, company, departments, employees, clients, projects, vendors, shops, invoices, inventory, bills, categories, transactions, budgets, goals, recurring],
   )
 
+  // Load shared MongoDB workspace (same data for Firebase login and API login)
   useEffect(() => {
-    if (!uid) return
+    if (!uid || !apiReady || !apiToken) return undefined
+
+    let cancelled = false
+    apiHydrated.current = false
+
+    ;(async () => {
+      try {
+        const data = await fetchWorkspace()
+        if (cancelled) return
+
+        const hasRemoteData =
+          (data.transactions?.length || 0) > 0 ||
+          (data.budgets?.length || 0) > 0 ||
+          (data.goals?.length || 0) > 0 ||
+          (data.recurring?.length || 0) > 0 ||
+          (data.categories?.length || 0) > 0
+
+        if (hasRemoteData) {
+          skipNextPersist.current = true
+          if (data.profile) {
+            setProfile((current) => ({
+              ...current,
+              ...data.profile,
+              enabledBusinessFeatures: current.enabledBusinessFeatures,
+            }))
+          }
+          if (data.categories?.length) setCategories(data.categories)
+          setTransactions(data.transactions || [])
+          setBudgets(data.budgets || [])
+          setGoals(data.goals || [])
+          setRecurring(data.recurring || [])
+        }
+      } catch (error) {
+        console.error('Failed to load workspace from API', error)
+      } finally {
+        if (!cancelled) apiHydrated.current = true
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [uid, apiReady, apiToken])
+
+  useEffect(() => {
+    if (!uid) return undefined
     if (!hydrated.current) {
       hydrated.current = true
-      return
+      return undefined
     }
+    if (skipNextPersist.current) {
+      skipNextPersist.current = false
+      return undefined
+    }
+
     saveState(persistPayload, uid, email)
-  }, [persistPayload, uid, email])
+
+    if (!apiReady || !apiToken || !apiHydrated.current) return undefined
+
+    const timer = window.setTimeout(() => {
+      saveWorkspace({
+        profile: {
+          name: persistPayload.profile.name,
+          workspace: persistPayload.profile.workspace,
+          currency: persistPayload.profile.currency,
+          language: persistPayload.profile.language,
+        },
+        categories: persistPayload.categories,
+        transactions: persistPayload.transactions,
+        budgets: persistPayload.budgets,
+        goals: persistPayload.goals,
+        recurring: persistPayload.recurring,
+      }).catch((error) => {
+        console.error('Failed to save workspace to API', error)
+      })
+    }, 900)
+
+    return () => window.clearTimeout(timer)
+  }, [persistPayload, uid, email, apiReady, apiToken])
 
   useEffect(() => {
     if (!user) return
@@ -124,7 +200,7 @@ export function ExpenseProvider({ children }) {
     () =>
       transactions
         .filter((transaction) => isInMonth(transaction.date, selectedYear, selectedMonth))
-        .sort((a, b) => b.date.localeCompare(a.date) || String(b.createdAt).localeCompare(String(a.createdAt))),
+        .sort(compareTransactionsNewest),
     [transactions, selectedYear, selectedMonth],
   )
 

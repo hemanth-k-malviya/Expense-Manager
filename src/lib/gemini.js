@@ -121,7 +121,7 @@ function buildPayload(text, snapshot, history = [], includeThinking = true) {
       parts: [
         {
           text: `You are the workspace assistant for Expense So, a personal and business money app.
-Reply in ${snapshot.languageName || 'English'}.
+Match the user's language for "answer". If the latest user message is in Hindi (Devanagari script or clear Hindi), write "answer" entirely in Hindi. Otherwise reply in ${snapshot.languageName || 'English'}.
 Today is ${snapshot.today}.
 Workspace data (JSON): ${JSON.stringify(compactSnapshot(snapshot))}
 

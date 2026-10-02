@@ -28,6 +28,8 @@ export const siteEn = {
   'site.landing.primary': 'Start Tracking',
   'site.landing.secondary': 'Try Demo',
   'site.landing.ctaHint': 'Free to start. Works in your browser. Guides and the demo are public.',
+  'site.landing.installKicker': 'Install the app',
+  'site.landing.installBody': 'Add Expense So to your home screen or Windows taskbar for one-tap access.',
   'site.landing.whatTitle': 'What Expense So does',
   'site.landing.what1':
     'Expense So is built for people who want a clear picture of their money. You log what you earn and what you spend, give each line a category and payment method, and the app totals the month for you.',
@@ -158,6 +160,8 @@ export const siteHi = {
   'site.landing.primary': 'ट्रैकिंग शुरू करें',
   'site.landing.secondary': 'डेमो आज़माएँ',
   'site.landing.ctaHint': 'शुरू करना मुफ़्त है। ब्राउज़र में चलता है। गाइड और डेमो सार्वजनिक हैं।',
+  'site.landing.installKicker': 'ऐप इंस्टॉल करें',
+  'site.landing.installBody': 'Expense So को होम स्क्रीन या Windows टास्कबार पर जोड़ें — एक टैप में खुलें।',
   'site.landing.whatTitle': 'Expense So क्या करता है',
   'site.landing.what1':
     'Expense So उन लोगों के लिए है जिन्हें पैसे की साफ़ तस्वीर चाहिए। आप कमाई और खर्च लिखते हैं, श्रेणी और भुगतान तरीका देते हैं, और ऐप महीने का योग खुद बनाता है।',

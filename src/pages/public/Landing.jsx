@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { usePublicSite } from '../../components/publicSiteContext'
 import { GUIDES } from '../../content/guides'
 import { APP_NAME } from '../../lib/constants'
+import InstallAppPanel from '../../components/InstallAppPanel'
 import { usePublicMeta } from './usePublicMeta'
 
 const benefitKeys = [
@@ -71,6 +72,11 @@ export default function Landing() {
           <p className="mt-5 max-w-2xl text-[17px] leading-8 text-[#d7e0db]">{t('site.landing.lede')}</p>
           <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[#adc0b9]">{t('site.landing.lede2')}</p>
           <CtaGroup t={t} className="mt-8" />
+          <div className="mt-8 max-w-xl rounded-[12px] border border-[#2a4545] bg-[#243d3d]/80 p-4 backdrop-blur-sm">
+            <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#adc0b9]">{t('site.landing.installKicker')}</p>
+            <p className="mt-2 text-[14px] leading-6 text-[#d7e0db]">{t('site.landing.installBody')}</p>
+            <InstallAppPanel compact />
+          </div>
           <p className="mt-4 text-[13px] text-[#8aa39b]">{t('site.landing.ctaHint')}</p>
         </div>
       </section>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Field, { controlClass } from '../components/Field'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import ConfirmDialog from '../components/ConfirmDialog'
+import InstallAppPanel from '../components/InstallAppPanel'
 import Modal from '../components/Modal'
 import { useExpenses } from '../context/ExpenseContext'
 import { useAuth } from '../context/AuthContext'
@@ -127,6 +128,12 @@ export default function Settings() {
         <div className="mt-4 max-w-lg">
           <LanguageSwitcher />
         </div>
+      </section>
+
+      <section className="rounded-[12px] border border-[#e8ebe4] bg-white p-4 sm:rounded-[9px] sm:p-5">
+        <h2 className="text-[18px] font-semibold text-[#263b39] sm:text-[20px]">{t('pwa.title')}</h2>
+        <p className="mt-1.5 text-[14px] leading-6 text-[#7d8782] sm:text-[15px]">{t('pwa.help')}</p>
+        <InstallAppPanel t={t} />
       </section>
 
       <section className="rounded-[12px] border border-[#e8ebe4] bg-white p-4 sm:rounded-[9px] sm:p-5">

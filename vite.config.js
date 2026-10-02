@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
 function geminiDevProxy(env) {
   const serverKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || ''
@@ -64,6 +65,87 @@ function geminiDevProxy(env) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    plugins: [react(), tailwindcss(), geminiDevProxy(env)],
+    plugins: [
+      react(),
+      tailwindcss(),
+      geminiDevProxy(env),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.svg', 'favicon.png', 'favicon-48.png', 'apple-touch-icon.png'],
+        manifest: {
+          name: 'Expense So — Expense Tracker',
+          short_name: 'Expense So',
+          description: 'Track daily expenses, budgets, and business books in one workspace.',
+          theme_color: '#1d3434',
+          background_color: '#f6f7ef',
+          display: 'standalone',
+          orientation: 'portrait-primary',
+          scope: '/',
+          start_url: '/',
+          id: '/',
+          categories: ['finance', 'productivity', 'business'],
+          icons: [
+            {
+              src: 'pwa-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any',
+            },
+            {
+              src: 'pwa-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any',
+            },
+            {
+              src: 'pwa-512-maskable.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+          ],
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
+          navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api\//],
+          runtimeCaching: [
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+              handler: 'NetworkOnly',
+            },
+            {
+              urlPattern: /^https:\/\/pagead2\.googlesyndication\.com\/.*/i,
+              handler: 'NetworkOnly',
+            },
+            {
+              urlPattern: /^https:\/\/generativelanguage\.googleapis\.com\/.*/i,
+              handler: 'NetworkOnly',
+            },
+            {
+              urlPattern: /^https:\/\/.*\.googleapis\.com\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'google-apis',
+                networkTimeoutSeconds: 10,
+                expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 },
+              },
+            },
+            {
+              urlPattern: /^https:\/\/.*\.firebaseio\.com\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'firebase-realtime',
+                networkTimeoutSeconds: 10,
+                expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 },
+              },
+            },
+          ],
+        },
+        devOptions: {
+          enabled: false,
+        },
+      }),
+    ],
   }
 })

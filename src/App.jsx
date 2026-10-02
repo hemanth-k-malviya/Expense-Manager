@@ -38,7 +38,7 @@ import Vendors from './pages/Vendors'
 function AuthenticatedShell() {
   const { user } = useAuth()
   return (
-    <ExpenseProvider key={`${user.uid}:${user.email || ''}`}>
+    <ExpenseProvider key={`${user.apiId || user.uid}:${user.email || ''}`}>
       <Layout />
     </ExpenseProvider>
   )

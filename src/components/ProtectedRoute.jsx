@@ -5,11 +5,11 @@ import { APP_HOME } from '../lib/site'
 import AuthSplash from './AuthSplash'
 
 export function ProtectedRoute({ children }) {
-  const { user, loading, configured } = useAuth()
+  const { user, loading } = useAuth()
   const location = useLocation()
 
   if (loading) return <AuthSplash />
-  if (!configured || !user) {
+  if (!user) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
   return children
