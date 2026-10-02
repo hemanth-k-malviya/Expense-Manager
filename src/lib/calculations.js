@@ -4,12 +4,12 @@ export function sumByType(transactions, type) {
     .reduce((sum, transaction) => sum + Number(transaction.amount), 0)
 }
 
-/** Latest activity first: createdAt, then date, then id. */
+/** Newest transaction date first; same-day items by createdAt, then id. */
 export function compareTransactionsNewest(a, b) {
-  const byCreated = String(b?.createdAt || '').localeCompare(String(a?.createdAt || ''))
-  if (byCreated) return byCreated
   const byDate = String(b?.date || '').localeCompare(String(a?.date || ''))
   if (byDate) return byDate
+  const byCreated = String(b?.createdAt || '').localeCompare(String(a?.createdAt || ''))
+  if (byCreated) return byCreated
   return String(b?.id || '').localeCompare(String(a?.id || ''))
 }
 
