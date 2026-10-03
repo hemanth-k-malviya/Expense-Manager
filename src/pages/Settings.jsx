@@ -4,6 +4,7 @@ import Field, { controlClass } from '../components/Field'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import ConfirmDialog from '../components/ConfirmDialog'
 import InstallAppPanel from '../components/InstallAppPanel'
+import { DeleteIconButton, EditIconButton } from '../components/ActionIcons'
 import Modal from '../components/Modal'
 import { useExpenses } from '../context/ExpenseContext'
 import { useAuth } from '../context/AuthContext'
@@ -22,6 +23,7 @@ export default function Settings() {
     addCategory,
     deleteCategory,
     addRecurring,
+    updateRecurring,
     deleteRecurring,
     exportJson,
     exportCsv,
@@ -41,8 +43,7 @@ export default function Settings() {
   const [aiEnabled, setAiEnabled] = useState(Boolean(profile.aiEnabled))
   const [geminiApiKey, setGeminiApiKey] = useState(profile.geminiApiKey || '')
   const [categoryForm, setCategoryForm] = useState({ name: '', type: 'expense' })
-  const [recurringOpen, setRecurringOpen] = useState(false)
-  const [recurringForm, setRecurringForm] = useState({
+  const emptyRecurringForm = () => ({
     name: '',
     amount: '',
     type: 'expense',
@@ -52,6 +53,8 @@ export default function Settings() {
     paymentMethod: 'Bank',
     note: '',
   })
+  const [recurringModal, setRecurringModal] = useState(null)
+  const [recurringForm, setRecurringForm] = useState(emptyRecurringForm)
   const [resetOpen, setResetOpen] = useState(false)
   const [pendingBackup, setPendingBackup] = useState(null)
   const [resetBusy, setResetBusy] = useState(false)
@@ -86,6 +89,32 @@ export default function Settings() {
     }
   }
 
+  const openRecurringCreate = () => {
+    setRecurringForm(emptyRecurringForm())
+    setRecurringError('')
+    setRecurringModal({ mode: 'create' })
+  }
+
+  const openRecurringEdit = (item) => {
+    setRecurringForm({
+      name: item.name || '',
+      amount: String(item.amount ?? ''),
+      type: item.type || 'expense',
+      category: item.category || categories.find((entry) => entry.type === (item.type || 'expense'))?.name || 'Other',
+      frequency: item.frequency || 'monthly',
+      nextDate: item.nextDate || todayISO(),
+      paymentMethod: item.paymentMethod || 'Bank',
+      note: item.note || '',
+    })
+    setRecurringError('')
+    setRecurringModal({ mode: 'edit', item })
+  }
+
+  const closeRecurringModal = () => {
+    setRecurringModal(null)
+    setRecurringError('')
+  }
+
   const handleRecurring = (event) => {
     event.preventDefault()
     const amount = Number.parseFloat(recurringForm.amount)
@@ -97,9 +126,12 @@ export default function Settings() {
       setRecurringError(t('form.needAmount'))
       return
     }
-    addRecurring({ ...recurringForm, amount })
-    setRecurringOpen(false)
-    setRecurringError('')
+    if (recurringModal?.mode === 'edit' && recurringModal.item?.id) {
+      updateRecurring(recurringModal.item.id, { ...recurringForm, amount })
+    } else {
+      addRecurring({ ...recurringForm, amount })
+    }
+    closeRecurringModal()
   }
 
   const handleImport = async (event) => {
@@ -314,9 +346,11 @@ export default function Settings() {
             <span key={category.id} className="inline-flex max-w-full items-center gap-2 rounded-full bg-[#f3f6f1] px-3 py-1.5 text-[13px] text-[#46504c] sm:text-[14px]">
               <span className="truncate">{categoryLabel(t, category.name)}</span>
               <em className="flex-shrink-0 not-italic text-[#8a948e]">{t(`type.${category.type}`)}</em>
-              <button type="button" onClick={() => deleteCategory(category.id)} className="flex-shrink-0 text-[#b45b4a]" aria-label={`${t('common.delete')} ${category.name}`}>
-                ×
-              </button>
+              <DeleteIconButton
+                label={`${t('common.delete')} ${category.name}`}
+                onClick={() => deleteCategory(category.id)}
+                className="h-7 w-7 flex-shrink-0"
+              />
             </span>
           ))}
         </div>
@@ -327,7 +361,7 @@ export default function Settings() {
           <h2 className="text-[18px] font-semibold text-[#263b39] sm:text-[20px]">{t('settings.recurring')}</h2>
           <button
             type="button"
-            onClick={() => setRecurringOpen(true)}
+            onClick={openRecurringCreate}
             className="min-h-10 rounded-[8px] px-2 text-[14px] font-semibold text-[#4d7772] sm:text-[15px]"
           >
             {t('settings.addRecurring')}
@@ -342,12 +376,14 @@ export default function Settings() {
                 <div className="min-w-0">
                   <b className="block truncate text-[#263b39]">{item.name}</b>
                   <span className="mt-1 block leading-5 text-[#7d8782]">
-                    {formatMoney(item.amount, profile.currency)} · {t(`freq.${item.frequency}`)} · {t('settings.next', { date: formatDisplayDate(item.nextDate, new Date(), t, locale) })}
+                    {t(`type.${item.type}`)} · {formatMoney(item.amount, profile.currency)} · {t(`freq.${item.frequency}`)} ·{' '}
+                    {t('settings.next', { date: formatDisplayDate(item.nextDate, new Date(), t, locale) })}
                   </span>
                 </div>
-                <button type="button" onClick={() => deleteRecurring(item.id)} className="min-h-10 flex-shrink-0 px-1 text-[#b45b4a]">
-                  {t('common.remove')}
-                </button>
+                <div className="flex flex-shrink-0 items-center gap-0.5">
+                  <EditIconButton label={t('common.edit')} onClick={() => openRecurringEdit(item)} />
+                  <DeleteIconButton label={t('common.remove')} onClick={() => deleteRecurring(item.id)} />
+                </div>
               </div>
             ))
           )}
@@ -383,8 +419,11 @@ export default function Settings() {
         </div>
       </section>
 
-      {recurringOpen ? (
-        <Modal title={t('settings.recurringModal')} onClose={() => setRecurringOpen(false)}>
+      {recurringModal ? (
+        <Modal
+          title={recurringModal.mode === 'edit' ? t('settings.recurringEditModal') : t('settings.recurringModal')}
+          onClose={closeRecurringModal}
+        >
           <form onSubmit={handleRecurring} className="space-y-4">
             <Field label={t('goals.name')} explain={t('settings.recurringNameHint')} placeholder={t('settings.recurringNamePh')}>
               <input value={recurringForm.name} onChange={(event) => setRecurringForm((current) => ({ ...current, name: event.target.value }))} className={controlClass} />
@@ -446,11 +485,11 @@ export default function Settings() {
             </div>
             {recurringError ? <p className="text-[15px] text-[#c45b45]">{recurringError}</p> : null}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setRecurringOpen(false)} className="min-h-11 rounded-[8px] border border-[#dfe6df] px-[14px] py-[10px] text-[15px]">
+              <button type="button" onClick={closeRecurringModal} className="min-h-11 rounded-[8px] border border-[#dfe6df] px-[14px] py-[10px] text-[15px]">
                 {t('common.cancel')}
               </button>
               <button type="submit" className="min-h-11 rounded-[8px] bg-[#e96d52] px-[16px] py-[10px] text-[15px] font-semibold text-white">
-                {t('settings.saveRecurring')}
+                {recurringModal.mode === 'edit' ? t('settings.updateRecurring') : t('settings.saveRecurring')}
               </button>
             </div>
           </form>

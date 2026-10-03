@@ -11,7 +11,7 @@ export const CURRENCIES = [
   { code: 'JPY', label: 'Japanese Yen' },
 ]
 
-export const PAYMENT_METHODS = ['Card', 'Cash', 'Bank', 'UPI', 'Wallet']
+export const PAYMENT_METHODS = ['Card', 'Cash', 'Bank', 'UPI', 'Wallet', 'Credit']
 
 export const RECURRING_FREQUENCIES = [
   { value: 'weekly', label: 'Weekly' },
@@ -74,6 +74,7 @@ export const CATEGORY_TONES = {
   Gifts: 'orange',
   'Shop sales': 'green',
   Inventory: 'orange',
+  Savings: 'sky',
 }
 
 export const DEFAULT_CATEGORIES = [
@@ -88,6 +89,7 @@ export const DEFAULT_CATEGORIES = [
   { id: 'cat-utilities', name: 'Utilities', type: 'expense' },
   { id: 'cat-education', name: 'Education', type: 'expense' },
   { id: 'cat-travel', name: 'Travel', type: 'expense' },
+  { id: 'cat-savings', name: 'Savings', type: 'expense' },
   { id: 'cat-other-expense', name: 'Other', type: 'expense' },
   { id: 'cat-salary', name: 'Salary', type: 'income' },
   { id: 'cat-freelance', name: 'Freelance', type: 'income' },

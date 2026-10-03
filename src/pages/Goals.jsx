@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import EmptyState from '../components/EmptyState'
 import Field, { controlClass } from '../components/Field'
+import { DeleteIconButton, EditIconButton } from '../components/ActionIcons'
 import Modal from '../components/Modal'
 import { useExpenses } from '../context/ExpenseContext'
 import { daysUntil } from '../lib/dates'
@@ -18,7 +19,7 @@ function goalForm(goal) {
 }
 
 export default function Goals() {
-  const { profile, goals, addGoal, updateGoal, contributeToGoal, deleteGoal, t } = useExpenses()
+  const { profile, goals, totalSaved, savingsTarget, addGoal, updateGoal, contributeToGoal, deleteGoal, t } = useExpenses()
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState(goalForm())
   const [contribute, setContribute] = useState(null)
@@ -88,6 +89,14 @@ export default function Goals() {
         <div>
           <h1 className="page-title m-0 font-semibold text-[#223535]">{t('goals.title')}</h1>
           <p className="mt-2 text-[13px] text-[#88918b]">{t('goals.subtitle')}</p>
+          {goals.length > 0 ? (
+            <p className="mt-3 text-[14px] font-semibold text-[#2b4a46]">
+              {t('goals.totalSaved', {
+                saved: formatMoney(totalSaved, profile.currency),
+                target: formatMoney(savingsTarget, profile.currency),
+              })}
+            </p>
+          ) : null}
         </div>
         <button type="button" onClick={() => openModal()} className="min-h-11 w-full rounded-[7px] bg-[#e96d52] px-[17px] py-[12px] text-[12px] font-bold text-white sm:w-auto">
           {t('goals.new')}
@@ -138,12 +147,8 @@ export default function Goals() {
                       {t('goals.contribute')}
                     </button>
                   ) : null}
-                  <button type="button" onClick={() => openModal(goal)} className="rounded-[7px] border border-[#dfe6df] px-3 py-2 text-[11px] text-[#4d7772]">
-                    {t('common.edit')}
-                  </button>
-                  <button type="button" onClick={() => setPendingDelete(goal)} className="rounded-[7px] px-3 py-2 text-[11px] text-[#b45b4a]">
-                    {t('common.delete')}
-                  </button>
+                  <EditIconButton label={t('common.edit')} onClick={() => openModal(goal)} />
+                  <DeleteIconButton label={t('common.delete')} onClick={() => setPendingDelete(goal)} />
                 </div>
               </article>
             )

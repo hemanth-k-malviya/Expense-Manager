@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DeleteIconButton } from '../components/ActionIcons'
 import Field, { controlClass } from '../components/Field'
 import { useExpenses } from '../context/ExpenseContext'
 import { nameById } from '../lib/business'
@@ -53,9 +54,7 @@ export default function Clients() {
                     {item.contact || t('clients.noContact')} · {t('clients.billable', { amount: formatMoney(billable, profile.currency) })}
                   </span>
                 </div>
-                <button type="button" onClick={() => deleteClient(item.id)} className="flex-shrink-0 text-[12px] text-[#b45b4a]">
-                  {t('common.remove')}
-                </button>
+                <DeleteIconButton label={t('common.remove')} onClick={() => deleteClient(item.id)} className="flex-shrink-0" />
               </div>
             )
           })}
@@ -101,9 +100,7 @@ export default function Clients() {
                     {t('clients.thisMonth', { client: nameById(clients, item.clientId), amount: formatMoney(spend, profile.currency) })}
                   </span>
                 </div>
-                <button type="button" onClick={() => deleteProject(item.id)} className="flex-shrink-0 text-[12px] text-[#b45b4a]">
-                  {t('common.remove')}
-                </button>
+                <DeleteIconButton label={t('common.remove')} onClick={() => deleteProject(item.id)} className="flex-shrink-0" />
               </div>
             )
           })}

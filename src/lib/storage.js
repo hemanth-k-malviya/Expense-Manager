@@ -35,7 +35,13 @@ export function mergeWithDefaults(loaded) {
     invoices: Array.isArray(loaded.invoices) ? loaded.invoices : [],
     inventory: Array.isArray(loaded.inventory) ? loaded.inventory : [],
     bills: Array.isArray(loaded.bills) ? loaded.bills : [],
-    categories: Array.isArray(loaded.categories) && loaded.categories.length > 0 ? loaded.categories : DEFAULT_CATEGORIES,
+    categories: (() => {
+      const existing = Array.isArray(loaded.categories) && loaded.categories.length > 0 ? loaded.categories : DEFAULT_CATEGORIES
+      const missing = DEFAULT_CATEGORIES.filter(
+        (item) => !existing.some((category) => category.name === item.name && category.type === item.type),
+      )
+      return missing.length ? [...existing, ...missing] : existing
+    })(),
     transactions: Array.isArray(loaded.transactions) ? loaded.transactions : [],
     budgets: Array.isArray(loaded.budgets) ? loaded.budgets : [],
     goals: Array.isArray(loaded.goals) ? loaded.goals : [],

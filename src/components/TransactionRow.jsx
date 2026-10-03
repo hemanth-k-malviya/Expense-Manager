@@ -1,7 +1,8 @@
 import { categoryInitials, categoryTone, formatSignedMoney } from '../lib/format'
 import { formatDisplayDate } from '../lib/dates'
-import { isPayableReimbursement } from '../lib/ledger'
+import { isOpenPersonalCredit, isPayableReimbursement } from '../lib/ledger'
 import { useExpenses } from '../context/ExpenseContext'
+import { DeleteIconButton, EditIconButton } from './ActionIcons'
 
 const toneClass = {
   green: 'bg-[#dfeecf] text-[#446a4d]',
@@ -13,11 +14,14 @@ const toneClass = {
 }
 
 export default function TransactionRow({ transaction, currency, onEdit, onDelete, compact = false }) {
-  const { t, locale } = useExpenses()
+  const { t, locale, markCreditPaid } = useExpenses()
   const tone = categoryTone(transaction.category, transaction.type)
   const signed = transaction.type === 'income' ? transaction.amount : -transaction.amount
   const categoryName = t(`cat.${transaction.category}`) === `cat.${transaction.category}` ? transaction.category : t(`cat.${transaction.category}`)
   const pay = transaction.paymentMethod ? t(`pay.${transaction.paymentMethod}`) : ''
+  const creditOpen = isOpenPersonalCredit(transaction)
+  const creditPaid = Boolean(transaction.onCredit && transaction.creditStatus === 'paid')
+  const creditSettlement = Boolean(transaction.creditSettlementFor)
 
   return (
     <div className="flex flex-wrap items-center gap-x-[11px] gap-y-2 border-b border-[#eff1ed] py-[12px]">
@@ -45,19 +49,30 @@ export default function TransactionRow({ transaction, currency, onEdit, onDelete
           {isPayableReimbursement(transaction) ? t('tx.badgePayable') : t('tx.badgeReimburse')}
         </span>
       ) : null}
+      {creditOpen ? (
+        <span className="rounded-full bg-[#fdecea] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.5px] text-[#b45b4a]">{t('tx.badgeCredit')}</span>
+      ) : null}
+      {creditPaid ? (
+        <span className="rounded-full bg-[#eaf4ea] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.5px] text-[#3d7a4c]">{t('tx.badgeCreditPaid')}</span>
+      ) : null}
+      {creditSettlement ? (
+        <span className="rounded-full bg-[#eef4f2] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.5px] text-[#3d6a66]">{t('tx.badgeCreditPay')}</span>
+      ) : null}
+
+      {!compact && creditOpen ? (
+        <button
+          type="button"
+          onClick={() => markCreditPaid(transaction.id)}
+          className="rounded-[7px] bg-[#1d3434] px-2.5 py-1.5 text-[10px] font-semibold text-white"
+        >
+          {t('tx.markCreditPaid')}
+        </button>
+      ) : null}
 
       {!compact && (onEdit || onDelete) ? (
-        <div className="flex w-full items-center justify-end gap-1 sm:w-auto">
-          {onEdit ? (
-            <button type="button" onClick={() => onEdit(transaction)} className="min-h-9 rounded px-3 py-1 text-[11px] text-[#4d7772] hover:bg-[#f3f6f1]">
-              {t('common.edit')}
-            </button>
-          ) : null}
-          {onDelete ? (
-            <button type="button" onClick={() => onDelete(transaction)} className="min-h-9 rounded px-3 py-1 text-[11px] text-[#b45b4a] hover:bg-[#fdf3f0]">
-              {t('common.delete')}
-            </button>
-          ) : null}
+        <div className="flex w-full items-center justify-end gap-0.5 sm:w-auto">
+          {onEdit ? <EditIconButton label={t('common.edit')} onClick={() => onEdit(transaction)} /> : null}
+          {onDelete ? <DeleteIconButton label={t('common.delete')} onClick={() => onDelete(transaction)} /> : null}
         </div>
       ) : null}
     </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DeleteIconButton } from '../components/ActionIcons'
 import Field, { controlClass } from '../components/Field'
 import { useExpenses } from '../context/ExpenseContext'
 import { EMPLOYEE_ROLES, nameById } from '../lib/business'
@@ -40,9 +41,11 @@ export default function Team() {
           {departments.map((item) => (
             <span key={item.id} className="inline-flex items-center gap-2 rounded-full bg-[#f3f6f1] px-3 py-1 text-[11px]">
               {item.name} {item.code ? `· ${item.code}` : ''}
-              <button type="button" onClick={() => deleteDepartment(item.id)} className="text-[#b45b4a]">
-                ×
-              </button>
+              <DeleteIconButton
+                label={`${t('common.remove')} ${item.name}`}
+                onClick={() => deleteDepartment(item.id)}
+                className="h-7 w-7"
+              />
             </span>
           ))}
         </div>
@@ -99,9 +102,7 @@ export default function Team() {
                   {item.email ? ` · ${item.email}` : ''}
                 </span>
               </div>
-              <button type="button" onClick={() => deleteEmployee(item.id)} className="flex-shrink-0 text-[12px] text-[#b45b4a]">
-                {t('common.remove')}
-              </button>
+              <DeleteIconButton label={t('common.remove')} onClick={() => deleteEmployee(item.id)} className="flex-shrink-0" />
             </div>
           ))}
         </div>

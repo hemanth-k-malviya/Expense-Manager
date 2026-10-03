@@ -23,6 +23,7 @@ function emptyForm(categories, company, variant) {
     shopId: '',
     billable: variant === 'billable',
     reimbursable: variant === 'reimburse',
+    onCredit: false,
     taxRate: withTax && company?.defaultTaxRate ? String(company.defaultTaxRate) : '0',
     status: variant === 'reimburse' ? 'submitted' : 'recorded',
   }
@@ -43,6 +44,7 @@ function buildForm(categories, company, initialValue, variant) {
     taxRate: String(initialValue.taxRate ?? base.taxRate),
     billable: variant === 'billable',
     reimbursable: variant === 'reimburse',
+    onCredit: Boolean(initialValue.onCredit),
     status: variant === 'reimburse' ? initialValue.status || 'submitted' : initialValue.status || 'recorded',
   }
 }
@@ -120,6 +122,7 @@ export default function TransactionForm({
     }
 
     if (isPersonal) {
+      const onCredit = Boolean(form.onCredit) && form.type === 'expense'
       onSubmit({
         ...form,
         amount,
@@ -127,6 +130,9 @@ export default function TransactionForm({
         reimbursable: false,
         taxRate: 0,
         status: 'recorded',
+        onCredit,
+        creditStatus: onCredit ? initialValue?.creditStatus || 'open' : undefined,
+        paymentMethod: onCredit ? form.paymentMethod || 'Credit' : form.paymentMethod,
         clientId: '',
         projectId: '',
         employeeId: '',
@@ -209,7 +215,17 @@ export default function TransactionForm({
       </div>
 
       <Field label={t('form.payment')} explain={t('form.paymentHint')}>
-        <select value={form.paymentMethod} onChange={(event) => update({ paymentMethod: event.target.value })} className={controlClass}>
+        <select
+          value={form.paymentMethod}
+          onChange={(event) => {
+            const paymentMethod = event.target.value
+            update({
+              paymentMethod,
+              onCredit: isPersonal && form.type === 'expense' && paymentMethod === 'Credit' ? true : form.onCredit,
+            })
+          }}
+          className={controlClass}
+        >
           {PAYMENT_METHODS.map((method) => (
             <option key={method} value={method}>
               {t(`pay.${method}`)}
@@ -217,6 +233,27 @@ export default function TransactionForm({
           ))}
         </select>
       </Field>
+
+      {isPersonal && form.type === 'expense' ? (
+        <label className="flex cursor-pointer items-start gap-3 rounded-[8px] border border-[#e8ebe4] bg-[#f9faf8] px-3 py-3 text-[13px] text-[#33403d]">
+          <input
+            type="checkbox"
+            checked={Boolean(form.onCredit)}
+            onChange={(event) => {
+              const onCredit = event.target.checked
+              update({
+                onCredit,
+                paymentMethod: onCredit ? 'Credit' : form.paymentMethod === 'Credit' ? 'Card' : form.paymentMethod,
+              })
+            }}
+            className="mt-0.5 h-4 w-4 accent-[#1d3434]"
+          />
+          <span>
+            <span className="block font-semibold">{t('form.credit')}</span>
+            <span className="mt-0.5 block text-[12px] text-[#7d8782]">{t('form.creditHint')}</span>
+          </span>
+        </label>
+      ) : null}
 
       {isBillable ? (
         <div className="grid gap-4 sm:grid-cols-2">

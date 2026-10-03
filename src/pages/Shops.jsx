@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DeleteIconButton } from '../components/ActionIcons'
 import Field, { controlClass } from '../components/Field'
 import { useExpenses } from '../context/ExpenseContext'
 import { SHOP_TYPES } from '../lib/business'
@@ -64,9 +65,7 @@ export default function Shops() {
                   <div className="flex flex-shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
                     <span className="text-[12px] text-[#7d8782]">{t('shops.sales', { amount: formatMoney(totals.sales, profile.currency) })}</span>
                     <strong className="whitespace-nowrap">{formatMoney(totals.profit, profile.currency)}</strong>
-                    <button type="button" onClick={() => deleteShop(item.id)} className="text-[12px] text-[#b45b4a]">
-                      {t('common.remove')}
-                    </button>
+                    <DeleteIconButton label={t('common.remove')} onClick={() => deleteShop(item.id)} />
                   </div>
                 </div>
               )

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DeleteIconButton } from '../components/ActionIcons'
 import Field, { controlClass } from '../components/Field'
 import { useExpenses } from '../context/ExpenseContext'
 import { formatMoney } from '../lib/format'
@@ -46,9 +47,7 @@ export default function Vendors() {
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-3 sm:gap-4">
                   <strong className="whitespace-nowrap">{formatMoney(spend, profile.currency)}</strong>
-                  <button type="button" onClick={() => deleteVendor(item.id)} className="text-[12px] text-[#b45b4a]">
-                    {t('common.remove')}
-                  </button>
+                  <DeleteIconButton label={t('common.remove')} onClick={() => deleteVendor(item.id)} />
                 </div>
               </div>
             )

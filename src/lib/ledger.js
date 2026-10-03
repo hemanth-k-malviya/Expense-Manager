@@ -32,6 +32,25 @@ export function isPersonalEntry(transaction) {
   return !isBillableEntry(transaction) && !isReimbursementEntry(transaction) && !isCompanyOpsEntry(transaction)
 }
 
+/** Personal purchase on credit (payable until paid). */
+export function isCreditPurchase(transaction) {
+  return Boolean(transaction?.onCredit)
+}
+
+export function isOpenPersonalCredit(transaction) {
+  return isPersonalEntry(transaction) && isCreditPurchase(transaction) && transaction.creditStatus !== 'paid'
+}
+
+export function isCreditSettlement(transaction) {
+  return Boolean(transaction?.creditSettlementFor)
+}
+
+export function personalCreditPayableTotal(transactions) {
+  return (transactions || [])
+    .filter(isOpenPersonalCredit)
+    .reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+}
+
 export function formVariantFor(transaction) {
   if (isBillableEntry(transaction)) return 'billable'
   if (isReimbursementEntry(transaction)) return 'reimburse'

@@ -9,7 +9,7 @@ import { useExpenses } from '../context/ExpenseContext'
 import { categoryLabel } from '../i18n'
 import { sortTransactions } from '../lib/calculations'
 import { formatMoney } from '../lib/format'
-import { formVariantFor, matchesLedger, payableReimbursementTotal } from '../lib/ledger'
+import { formVariantFor, matchesLedger, payableReimbursementTotal, personalCreditPayableTotal } from '../lib/ledger'
 
 const LEDGER_TABS = [
   { id: 'personal', labelKey: 'tx.ledgerPersonal' },
@@ -63,6 +63,7 @@ export default function Transactions() {
   const reimbursablePaid = filtered
     .filter((item) => item.reimbursable && item.status === 'reimbursed')
     .reduce((sum, item) => sum + item.amount, 0)
+  const creditPayable = personalCreditPayableTotal(filtered)
 
   const openCreate = () => {
     if (createVariant === 'billable' && clients.length === 0) {
@@ -137,6 +138,9 @@ export default function Transactions() {
             <span>{t('tx.in', { amount: formatMoney(income, profile.currency) })}</span>
             <span>{t('tx.out', { amount: formatMoney(spending, profile.currency) })}</span>
             <span>{t('tx.net', { amount: formatMoney(income - spending, profile.currency) })}</span>
+            {creditPayable > 0 ? (
+              <span>{t('tx.creditPayable', { amount: formatMoney(creditPayable, profile.currency) })}</span>
+            ) : null}
           </>
         )}
         <Select value={sort} onChange={(event) => setSort(event.target.value)} className="w-full rounded-[8px] border border-[#dfe6df] bg-white px-3 py-2 text-[12px] outline-none sm:ml-auto sm:w-auto">

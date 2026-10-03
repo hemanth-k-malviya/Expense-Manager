@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import EmptyState from '../components/EmptyState'
 import Field, { controlClass } from '../components/Field'
+import { DeleteIconButton, EditIconButton } from '../components/ActionIcons'
 import Modal from '../components/Modal'
 import { useExpenses } from '../context/ExpenseContext'
 import { categoryLabel } from '../i18n'
@@ -90,13 +91,9 @@ export default function Budgets() {
                         : t('budgets.remaining', { amount: formatMoney(budget.remaining, profile.currency) })}
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => openCreate(budget.category)} className="text-[11px] text-[#4d7772]">
-                      {t('common.edit')}
-                    </button>
-                    <button type="button" onClick={() => setPendingDelete(budget)} className="text-[11px] text-[#b45b4a]">
-                      {t('common.remove')}
-                    </button>
+                  <div className="flex gap-0.5">
+                    <EditIconButton label={t('common.edit')} onClick={() => openCreate(budget.category)} />
+                    <DeleteIconButton label={t('common.remove')} onClick={() => setPendingDelete(budget)} />
                   </div>
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#edf0eb]">

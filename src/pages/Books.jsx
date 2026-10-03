@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import BarChart from '../components/charts/BarChart'
 import LineChart from '../components/charts/LineChart'
+import { DeleteIconButton } from '../components/ActionIcons'
 import Field, { controlClass } from '../components/Field'
 import { useExpenses } from '../context/ExpenseContext'
 import { billStatus, collectReminders, inventoryRetailValue, inventoryValue, invoiceStatus, isLowStock, itemBuyPrice, itemSellPrice, nextInvoiceNumber, openPayables, openReceivables } from '../lib/books'
@@ -392,9 +393,7 @@ function InvoicesPanel({ invoices, clients, today, money, t, nextNumber, onAdd, 
                       {t('books.markPaid')}
                     </button>
                   ) : null}
-                  <button type="button" onClick={() => onDelete(item.id)} className="text-[12px] text-[#b45b4a]">
-                    {t('common.remove')}
-                  </button>
+                  <DeleteIconButton label={t('common.remove')} onClick={() => onDelete(item.id)} />
                 </div>
               </div>
             )
@@ -491,9 +490,7 @@ function InventoryPanel({ inventory, shops, money, t, onAdd, onAdjust, onDelete 
                   <button type="button" onClick={() => onAdjust(item.id, 1)} className="grid h-8 w-8 place-items-center rounded-full border border-[#dde3db]">
                     +
                   </button>
-                  <button type="button" onClick={() => onDelete(item.id)} className="ml-2 text-[12px] text-[#b45b4a]">
-                    {t('common.remove')}
-                  </button>
+                  <DeleteIconButton label={t('common.remove')} onClick={() => onDelete(item.id)} className="ml-1" />
                 </div>
               </div>
             )
@@ -574,9 +571,7 @@ function LedgerPanel({ bills, vendors, invoices, today, money, payable, receivab
                         {t('books.markPaid')}
                       </button>
                     ) : null}
-                    <button type="button" onClick={() => onDelete(item.id)} className="text-[12px] text-[#b45b4a]">
-                      {t('common.remove')}
-                    </button>
+                    <DeleteIconButton label={t('common.remove')} onClick={() => onDelete(item.id)} />
                   </div>
                 </div>
               )

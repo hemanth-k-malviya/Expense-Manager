@@ -39,11 +39,16 @@ export default function Overview() {
     incomeTotal,
     spendingTotal,
     totalBalance,
+    totalSaved,
+    savingsTarget,
+    savingsDeposited,
+    creditPayableTotal,
     previousIncome,
     previousSpending,
     previousBalance,
     expenseBreakdown,
     budgetStatus,
+    goals,
     addTransaction,
     stepMonth,
     goToToday,
@@ -132,29 +137,52 @@ export default function Overview() {
         <button type="button" onClick={goToToday} className="rounded-[5px] border border-[#dde3db] bg-white px-[10px] py-[6px] text-[11px] text-[#69746e]">
           {t('common.today')}
         </button>
-        <span className="w-full text-[10px] text-[#9ca59f] sm:ml-auto sm:w-auto">
-          <span className="mr-[4px] inline-block h-[6px] w-[6px] rounded-full bg-[#7eb07b]" />
-          {t('overview.savedDevice')}
-        </span>
       </div>
 
-      <div className="mt-[15px] grid gap-[13px] sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr]">
-        <article className="relative overflow-hidden rounded-[9px] border border-[#dbe899] bg-[#dbe899] px-4 py-4 sm:min-h-[170px] sm:px-[23px] sm:py-[22px] sm:col-span-2 lg:col-span-1">
+      <div className="mt-[15px] grid gap-[13px] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <article className="relative overflow-hidden rounded-[9px] border border-[#dbe899] bg-[#dbe899] px-4 py-4 sm:min-h-[150px] sm:px-[20px] sm:py-[20px] sm:col-span-2 lg:col-span-1">
           <div className="mb-[10px] text-[10px] font-bold tracking-[1.2px] text-[#87918a]">{t('overview.net')}</div>
-          <div className="font-['Space_Grotesk'] text-[24px] font-semibold tracking-[-1px] text-[#193634] sm:text-[29px]">{formatMoney(totalBalance, currency)}</div>
+          <div className="font-['Space_Grotesk'] text-[24px] font-semibold tracking-[-1px] text-[#193634] sm:text-[28px]">{formatMoney(totalBalance, currency)}</div>
           <ChangeHint current={totalBalance} previous={previousBalance} t={t} />
         </article>
 
-        <article className="rounded-[9px] border border-[#e8ebe4] bg-white px-4 py-4 sm:min-h-[170px] sm:px-[23px] sm:py-[22px]">
+        <article className="rounded-[9px] border border-[#e8ebe4] bg-white px-4 py-4 sm:min-h-[150px] sm:px-[20px] sm:py-[20px]">
           <div className="mb-[10px] text-[10px] font-bold tracking-[1.2px] text-[#87918a]">{t('overview.income')}</div>
-          <div className="mt-[8px] font-['Space_Grotesk'] text-[22px] font-semibold text-[#283735] sm:text-[25px]">{formatMoney(incomeTotal, currency)}</div>
+          <div className="mt-[8px] font-['Space_Grotesk'] text-[22px] font-semibold text-[#283735] sm:text-[24px]">{formatMoney(incomeTotal, currency)}</div>
           <ChangeHint current={incomeTotal} previous={previousIncome} t={t} />
         </article>
 
-        <article className="rounded-[9px] border border-[#e8ebe4] bg-white px-4 py-4 sm:min-h-[170px] sm:px-[23px] sm:py-[22px]">
+        <article className="rounded-[9px] border border-[#e8ebe4] bg-white px-4 py-4 sm:min-h-[150px] sm:px-[20px] sm:py-[20px]">
           <div className="mb-[10px] text-[10px] font-bold tracking-[1.2px] text-[#87918a]">{t('overview.spending')}</div>
-          <div className="mt-[8px] font-['Space_Grotesk'] text-[22px] font-semibold text-[#283735] sm:text-[25px]">{formatMoney(spendingTotal, currency)}</div>
+          <div className="mt-[8px] font-['Space_Grotesk'] text-[22px] font-semibold text-[#283735] sm:text-[24px]">{formatMoney(spendingTotal, currency)}</div>
           <ChangeHint current={spendingTotal} previous={previousSpending} invert t={t} />
+        </article>
+
+        <article className="rounded-[9px] border border-[#d7e8df] bg-[#f3faf6] px-4 py-4 sm:min-h-[150px] sm:px-[20px] sm:py-[20px]">
+          <div className="mb-[10px] flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold tracking-[1.2px] text-[#87918a]">{t('overview.savings')}</span>
+            <Link to="/goals" className="text-[11px] text-[#4d7772]">
+              {t('overview.savingsManage')}
+            </Link>
+          </div>
+          <div className="mt-[8px] font-['Space_Grotesk'] text-[22px] font-semibold text-[#283735] sm:text-[24px]">{formatMoney(totalSaved, currency)}</div>
+          <p className="mt-[12px] text-[11px] text-[#69746e]">
+            {goals.length
+              ? t('overview.savingsOf', { amount: formatMoney(savingsTarget, currency) })
+              : t('overview.savingsEmpty')}
+            {savingsDeposited > 0 ? ` · ${t('overview.savingsMonth', { amount: formatMoney(savingsDeposited, currency) })}` : ''}
+          </p>
+        </article>
+
+        <article className="rounded-[9px] border border-[#f3ddd6] bg-[#fff8f5] px-4 py-4 sm:min-h-[150px] sm:px-[20px] sm:py-[20px]">
+          <div className="mb-[10px] flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold tracking-[1.2px] text-[#87918a]">{t('overview.creditPayable')}</span>
+            <Link to="/transactions" className="text-[11px] text-[#4d7772]">
+              {t('overview.creditManage')}
+            </Link>
+          </div>
+          <div className="mt-[8px] font-['Space_Grotesk'] text-[22px] font-semibold text-[#283735] sm:text-[24px]">{formatMoney(creditPayableTotal, currency)}</div>
+          <p className="mt-[12px] text-[11px] text-[#69746e]">{t('overview.creditPayableHint')}</p>
         </article>
       </div>
 
