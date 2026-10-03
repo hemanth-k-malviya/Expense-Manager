@@ -1,15 +1,27 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { categoryTotals, compareTransactionsNewest, spentByCategory, sumByType, transactionsToCsv } from '../lib/calculations'
+import {
+  categoryTotals,
+  compareTransactionsNewest,
+  sortTransactions,
+  spentByCategory,
+  sumByType,
+  transactionsToCsv,
+} from '../lib/calculations'
 import { createId, isInMonth, shiftMonth, todayISO } from '../lib/dates'
 import { downloadFile, initialsFromName } from '../lib/format'
-import { materializeRecurring } from '../lib/recurring'
+import { applyRecurringMaterialization, isSavingsTransfer } from '../lib/recurring'
 import { defaultCompany, businessFieldsFrom } from '../lib/business'
 import { getEmptyState } from '../lib/seed'
 import { clearState, loadState, mergeWithDefaults, parseImportedState, saveState } from '../lib/storage'
 import { defaultSubscription } from '../lib/subscription'
 import { collectReminders } from '../lib/books'
 import { buildBackupFile } from '../lib/backup'
-import { isPersonalEntry } from '../lib/ledger'
+import {
+  isCreditPurchase,
+  isOpenPersonalCredit,
+  isPersonalEntry,
+  personalCreditPayableTotal,
+} from '../lib/ledger'
 import { fetchWorkspace, saveWorkspace } from '../lib/api'
 import { applyDocumentLanguage, DEFAULT_LANGUAGE, detectLanguage, languageMeta, translate } from '../i18n'
 import { useAuth } from './AuthContext'
@@ -19,12 +31,12 @@ const ExpenseContext = createContext(null)
 function initializeStore(uid, email) {
   const loaded = loadState(uid, email)
   const base = loaded ?? getEmptyState({ language: detectLanguage() })
-  const { newTransactions, updatedRecurring } = materializeRecurring(base.recurring, todayISO())
+  const applied = applyRecurringMaterialization(base.recurring, base.transactions, todayISO())
 
   return {
     ...base,
-    transactions: [...newTransactions, ...base.transactions],
-    recurring: updatedRecurring,
+    transactions: sortTransactions(applied.transactions, 'newest'),
+    recurring: applied.recurring,
   }
 }
 
@@ -37,6 +49,8 @@ export function ExpenseProvider({ children }) {
   const hydrated = useRef(false)
   const apiHydrated = useRef(false)
   const skipNextPersist = useRef(false)
+  const transactionsRef = useRef(initial.transactions)
+  const recurringRef = useRef(initial.recurring)
 
   const [profile, setProfile] = useState(initial.profile)
   const [subscription, setSubscription] = useState(initial.subscription ?? defaultSubscription())
@@ -63,6 +77,8 @@ export function ExpenseProvider({ children }) {
   const language = profile.language || DEFAULT_LANGUAGE
   const languageRef = useRef(language)
   languageRef.current = language
+  transactionsRef.current = transactions
+  recurringRef.current = recurring
   const dir = languageMeta(language).dir
   const locale = languageMeta(language).locale
   const t = useCallback((key, vars) => translate(language, key, vars), [language])
@@ -107,28 +123,46 @@ export function ExpenseProvider({ children }) {
         const data = await fetchWorkspace()
         if (cancelled) return
 
-        const hasRemoteData =
-          (data.transactions?.length || 0) > 0 ||
-          (data.budgets?.length || 0) > 0 ||
-          (data.goals?.length || 0) > 0 ||
-          (data.recurring?.length || 0) > 0 ||
-          (data.categories?.length || 0) > 0
+        const remoteTransactions = Array.isArray(data.transactions) ? data.transactions : []
+        const remoteBudgets = Array.isArray(data.budgets) ? data.budgets : []
+        const remoteGoals = Array.isArray(data.goals) ? data.goals : []
+        const remoteRecurring = Array.isArray(data.recurring) ? data.recurring : []
+        const remoteCategories = Array.isArray(data.categories) ? data.categories : []
 
-        if (hasRemoteData) {
-          skipNextPersist.current = true
-          if (data.profile) {
-            setProfile((current) => ({
-              ...current,
-              ...data.profile,
-              enabledBusinessFeatures: current.enabledBusinessFeatures,
-            }))
-          }
-          if (data.categories?.length) setCategories(data.categories)
-          setTransactions(data.transactions || [])
-          setBudgets(data.budgets || [])
-          setGoals(data.goals || [])
-          setRecurring(data.recurring || [])
+        skipNextPersist.current = true
+
+        if (data.profile) {
+          setProfile((current) => ({
+            ...current,
+            ...data.profile,
+            enabledBusinessFeatures: current.enabledBusinessFeatures,
+          }))
         }
+
+        // Never wipe local money data with empty remote (categories-only responses used to do that).
+        if (remoteCategories.length > 0) setCategories(remoteCategories)
+        if (remoteBudgets.length > 0) setBudgets(remoteBudgets)
+        if (remoteGoals.length > 0) setGoals(remoteGoals)
+
+        setTransactions((localTransactions) => {
+          const local = Array.isArray(localTransactions) ? localTransactions : []
+          // Prefer whichever side has more rows; if remote empty keep local.
+          if (remoteTransactions.length === 0) return sortTransactions(local, 'newest')
+          if (local.length > remoteTransactions.length) {
+            const remoteIds = new Set(remoteTransactions.map((item) => String(item.id)))
+            const localOnly = local.filter((item) => !remoteIds.has(String(item.id)))
+            const merged = applyRecurringMaterialization(
+              remoteRecurring,
+              [...remoteTransactions, ...localOnly],
+              todayISO(),
+            )
+            return sortTransactions(merged.transactions, 'newest')
+          }
+          const applied = applyRecurringMaterialization(remoteRecurring, remoteTransactions, todayISO())
+          return sortTransactions(applied.transactions, 'newest')
+        })
+
+        if (remoteRecurring.length > 0) setRecurring(remoteRecurring)
       } catch (error) {
         console.error('Failed to load workspace from API', error)
       } finally {
@@ -165,7 +199,7 @@ export function ExpenseProvider({ children }) {
           language: persistPayload.profile.language,
         },
         categories: persistPayload.categories,
-        transactions: persistPayload.transactions,
+        transactions: sortTransactions(persistPayload.transactions, 'newest'),
         budgets: persistPayload.budgets,
         goals: persistPayload.goals,
         recurring: persistPayload.recurring,
@@ -220,28 +254,80 @@ export function ExpenseProvider({ children }) {
     [previousTransactions],
   )
 
-  const incomeTotal = sumByType(personalMonthTransactions, 'income')
-  const spendingTotal = sumByType(personalMonthTransactions, 'expense')
-  const previousIncome = sumByType(personalPreviousTransactions, 'income')
-  const previousSpending = sumByType(personalPreviousTransactions, 'expense')
+  const operatingMonth = useMemo(
+    () =>
+      personalMonthTransactions.filter(
+        (item) => !isSavingsTransfer(item) && !isCreditPurchase(item),
+      ),
+    [personalMonthTransactions],
+  )
+  const operatingPrevious = useMemo(
+    () =>
+      personalPreviousTransactions.filter(
+        (item) => !isSavingsTransfer(item) && !isCreditPurchase(item),
+      ),
+    [personalPreviousTransactions],
+  )
+
+  const incomeTotal = sumByType(operatingMonth, 'income')
+  const spendingTotal = sumByType(operatingMonth, 'expense')
+  const previousIncome = sumByType(operatingPrevious, 'income')
+  const previousSpending = sumByType(operatingPrevious, 'expense')
   const previousBalance = previousIncome - previousSpending
   const totalBalance = incomeTotal - spendingTotal
 
-  const expenseBreakdown = useMemo(
-    () => categoryTotals(personalMonthTransactions, 'expense'),
+  const savingsDeposited = useMemo(
+    () =>
+      personalMonthTransactions
+        .filter((item) => isSavingsTransfer(item))
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0),
     [personalMonthTransactions],
+  )
+  const totalSaved = useMemo(
+    () => goals.reduce((sum, goal) => sum + Number(goal.currentAmount || 0), 0),
+    [goals],
+  )
+  const savingsTarget = useMemo(
+    () => goals.reduce((sum, goal) => sum + Number(goal.targetAmount || 0), 0),
+    [goals],
+  )
+  const creditPayableTotal = useMemo(
+    () => personalCreditPayableTotal(transactions),
+    [transactions],
+  )
+
+  const expenseBreakdown = useMemo(
+    () => categoryTotals(operatingMonth, 'expense'),
+    [operatingMonth],
   )
 
   const budgetStatus = useMemo(
     () =>
       budgets.map((budget) => {
-        const spent = spentByCategory(personalMonthTransactions, budget.category)
+        const spent = spentByCategory(operatingMonth, budget.category)
         const remaining = budget.amount - spent
         const percent = budget.amount > 0 ? (spent / budget.amount) * 100 : 0
         return { ...budget, spent, remaining, percent }
       }),
-    [budgets, personalMonthTransactions],
+    [budgets, operatingMonth],
   )
+
+  const runRecurringMaterialization = useCallback(() => {
+    const applied = applyRecurringMaterialization(
+      recurringRef.current,
+      transactionsRef.current,
+      todayISO(),
+    )
+    if (applied.postedCount === 0) return 0
+    setTransactions(sortTransactions(applied.transactions, 'newest'))
+    setRecurring(applied.recurring)
+    return applied.postedCount
+  }, [])
+
+  useEffect(() => {
+    // Post any due recurring items after login / workspace ready.
+    runRecurringMaterialization()
+  }, [uid, runRecurringMaterialization])
 
   const alerts = useMemo(() => {
     const items = []
@@ -330,24 +416,54 @@ export function ExpenseProvider({ children }) {
   )
 
   const addTransaction = useCallback((payload) => {
+    const savings = Boolean(payload.savings) || payload.category === 'Savings'
+    const onCredit = !savings && Boolean(payload.onCredit) && payload.type === 'expense'
     const next = {
       id: createId(),
       name: payload.name.trim(),
       amount: Number(payload.amount),
-      type: payload.type,
-      category: payload.category,
+      type: savings ? 'expense' : payload.type,
+      category: savings ? 'Savings' : payload.category,
       date: payload.date,
       note: payload.note?.trim() || '',
-      paymentMethod: payload.paymentMethod || 'Card',
+      paymentMethod: onCredit ? payload.paymentMethod || 'Credit' : payload.paymentMethod || 'Card',
       createdAt: new Date().toISOString(),
+      ...(savings ? { savings: true, goalId: payload.goalId || null } : {}),
+      ...(onCredit
+        ? {
+            onCredit: true,
+            creditStatus: payload.creditStatus || 'open',
+          }
+        : {}),
+      ...(payload.creditSettlementFor ? { creditSettlementFor: payload.creditSettlementFor } : {}),
       ...businessFieldsFrom(payload),
     }
     setTransactions((current) => [next, ...current])
-    addToast(payload.type === 'income' ? tr('toast.incomeAdded') : tr('toast.expenseAdded'), 'success')
+    if (savings && payload.goalId) {
+      setGoals((current) =>
+        current.map((goal) =>
+          goal.id === payload.goalId
+            ? { ...goal, currentAmount: Number(goal.currentAmount || 0) + Number(payload.amount) }
+            : goal,
+        ),
+      )
+    }
+    addToast(
+      savings
+        ? tr('toast.savingsAdded')
+        : onCredit
+          ? tr('toast.creditAdded')
+          : payload.type === 'income'
+            ? tr('toast.incomeAdded')
+            : tr('toast.expenseAdded'),
+      'success',
+    )
     return next
-  }, [addToast])
+  }, [addToast, tr])
 
   const updateTransaction = useCallback((id, payload) => {
+    const savings = Boolean(payload.savings) || payload.category === 'Savings'
+    const onCredit = !savings && Boolean(payload.onCredit) && payload.type === 'expense'
     setTransactions((current) =>
       current.map((transaction) =>
         transaction.id === id
@@ -355,18 +471,56 @@ export function ExpenseProvider({ children }) {
               ...transaction,
               name: payload.name.trim(),
               amount: Number(payload.amount),
-              type: payload.type,
-              category: payload.category,
+              type: savings ? 'expense' : payload.type,
+              category: savings ? 'Savings' : payload.category,
               date: payload.date,
               note: payload.note?.trim() || '',
               paymentMethod: payload.paymentMethod || transaction.paymentMethod,
+              savings: savings || undefined,
+              goalId: savings ? payload.goalId || transaction.goalId || null : undefined,
+              onCredit: onCredit || undefined,
+              creditStatus: onCredit
+                ? payload.creditStatus || transaction.creditStatus || 'open'
+                : undefined,
+              creditSettlementFor: payload.creditSettlementFor || transaction.creditSettlementFor,
               ...businessFieldsFrom(payload, transaction),
             }
           : transaction,
       ),
     )
     addToast(tr('toast.txUpdated'), 'success')
-  }, [addToast])
+  }, [addToast, tr])
+
+  const markCreditPaid = useCallback(
+    (id, { paymentMethod = 'Cash', date } = {}) => {
+      const original = transactionsRef.current.find((item) => item.id === id)
+      if (!original || !isOpenPersonalCredit(original)) return
+
+      setTransactions((current) => {
+        const paidAt = date || todayISO()
+        const updated = current.map((item) =>
+          item.id === id ? { ...item, creditStatus: 'paid' } : item,
+        )
+        return [
+          {
+            id: createId(),
+            name: tr('tx.creditPayment', { name: original.name }),
+            amount: Number(original.amount),
+            type: 'expense',
+            category: original.category || 'Other',
+            date: paidAt,
+            note: tr('tx.creditPaymentNote'),
+            paymentMethod,
+            creditSettlementFor: id,
+            createdAt: new Date().toISOString(),
+          },
+          ...updated,
+        ]
+      })
+      addToast(tr('toast.creditPaid'), 'success')
+    },
+    [addToast, tr],
+  )
 
   const setTransactionStatus = useCallback((id, status) => {
     if (!requireBusiness('approvals')) return
@@ -435,13 +589,30 @@ export function ExpenseProvider({ children }) {
     if (!requirePremium('goals')) return
     const value = Number(amount)
     if (!Number.isFinite(value) || value <= 0) return
+    const goal = goals.find((item) => item.id === id)
     setGoals((current) =>
-      current.map((goal) =>
-        goal.id === id ? { ...goal, currentAmount: Number(goal.currentAmount) + value } : goal,
+      current.map((item) =>
+        item.id === id ? { ...item, currentAmount: Number(item.currentAmount) + value } : item,
       ),
     )
+    setTransactions((current) => [
+      {
+        id: createId(),
+        name: goal?.name ? tr('goals.depositName', { name: goal.name }) : tr('goals.depositGeneric'),
+        amount: value,
+        type: 'expense',
+        category: 'Savings',
+        date: todayISO(),
+        note: tr('goals.depositNote'),
+        paymentMethod: 'Bank',
+        savings: true,
+        goalId: id,
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ])
     addToast(tr('toast.contribution'), 'success')
-  }, [addToast, requirePremium])
+  }, [addToast, goals, requirePremium, tr])
 
   const deleteGoal = useCallback((id) => {
     setGoals((current) => current.filter((goal) => goal.id !== id))
@@ -491,9 +662,41 @@ export function ExpenseProvider({ children }) {
       paymentMethod: payload.paymentMethod || 'Bank',
       note: payload.note?.trim() || '',
     }
-    setRecurring((current) => [next, ...current])
+    const withNext = [next, ...recurringRef.current]
+    const applied = applyRecurringMaterialization(withNext, transactionsRef.current, todayISO())
+    setRecurring(applied.recurring)
+    setTransactions(sortTransactions(applied.transactions, 'newest'))
     addToast(tr('toast.recurringSaved'), 'success')
-  }, [addToast, requirePremium])
+    if (applied.postedCount > 0) {
+      addToast(tr('toast.recurringPosted', { count: applied.postedCount }), 'success')
+    }
+  }, [addToast, requirePremium, tr])
+
+  const updateRecurring = useCallback((id, payload) => {
+    if (!requirePremium('recurring')) return
+    const updated = recurringRef.current.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            name: payload.name.trim(),
+            amount: Number(payload.amount),
+            type: payload.type,
+            category: payload.category,
+            frequency: payload.frequency,
+            nextDate: payload.nextDate,
+            paymentMethod: payload.paymentMethod || 'Bank',
+            note: payload.note?.trim() || '',
+          }
+        : item,
+    )
+    const applied = applyRecurringMaterialization(updated, transactionsRef.current, todayISO())
+    setRecurring(applied.recurring)
+    setTransactions(sortTransactions(applied.transactions, 'newest'))
+    addToast(tr('toast.recurringUpdated'), 'success')
+    if (applied.postedCount > 0) {
+      addToast(tr('toast.recurringPosted', { count: applied.postedCount }), 'success')
+    }
+  }, [addToast, requirePremium, tr])
 
   const deleteRecurring = useCallback((id) => {
     setRecurring((current) => current.filter((item) => item.id !== id))
@@ -761,13 +964,13 @@ export function ExpenseProvider({ children }) {
 
   const importJson = useCallback((raw) => {
     const next = parseImportedState(raw)
-    const materialized = materializeRecurring(next.recurring, todayISO())
+    const applied = applyRecurringMaterialization(next.recurring, next.transactions, todayISO())
     setProfile(next.profile)
     setCategories(next.categories)
-    setTransactions([...materialized.newTransactions, ...next.transactions])
+    setTransactions(sortTransactions(applied.transactions, 'newest'))
     setBudgets(next.budgets)
     setGoals(next.goals)
-    setRecurring(materialized.updatedRecurring)
+    setRecurring(applied.recurring)
     setSubscription(next.subscription ?? defaultSubscription())
     setCompany(next.company ?? defaultCompany())
     setDepartments(next.departments ?? [])
@@ -850,6 +1053,10 @@ export function ExpenseProvider({ children }) {
       incomeTotal,
       spendingTotal,
       totalBalance,
+      totalSaved,
+      savingsTarget,
+      savingsDeposited,
+      creditPayableTotal,
       previousIncome,
       previousSpending,
       previousBalance,
@@ -867,6 +1074,7 @@ export function ExpenseProvider({ children }) {
       requireBusiness,
       addTransaction,
       updateTransaction,
+      markCreditPaid,
       deleteTransaction,
       setTransactionStatus,
       upsertBudget,
@@ -878,6 +1086,7 @@ export function ExpenseProvider({ children }) {
       addCategory,
       deleteCategory,
       addRecurring,
+      updateRecurring,
       deleteRecurring,
       updateCompany,
       addDepartment,
@@ -946,6 +1155,10 @@ export function ExpenseProvider({ children }) {
       incomeTotal,
       spendingTotal,
       totalBalance,
+      totalSaved,
+      savingsTarget,
+      savingsDeposited,
+      creditPayableTotal,
       previousIncome,
       previousSpending,
       previousBalance,
@@ -963,6 +1176,7 @@ export function ExpenseProvider({ children }) {
       requireBusiness,
       addTransaction,
       updateTransaction,
+      markCreditPaid,
       deleteTransaction,
       setTransactionStatus,
       upsertBudget,
@@ -974,6 +1188,7 @@ export function ExpenseProvider({ children }) {
       addCategory,
       deleteCategory,
       addRecurring,
+      updateRecurring,
       deleteRecurring,
       updateCompany,
       addDepartment,

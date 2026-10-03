@@ -24,7 +24,10 @@ export function todayISO() {
 }
 
 export function isInMonth(dateStr, year, monthIndex) {
-  const date = parseISODate(dateStr)
+  if (!dateStr || typeof dateStr !== 'string') return false
+  const day = dateStr.slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false
+  const date = parseISODate(day)
   return date.getFullYear() === year && date.getMonth() === monthIndex
 }
 
