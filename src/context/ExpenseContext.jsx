@@ -52,6 +52,7 @@ export function ExpenseProvider({ children }) {
   const transactionsRef = useRef(initial.transactions)
   const recurringRef = useRef(initial.recurring)
 
+  const [cloudReady, setCloudReady] = useState(false)
   const [profile, setProfile] = useState(initial.profile)
   const [subscription, setSubscription] = useState(initial.subscription ?? defaultSubscription())
   const [categories, setCategories] = useState(initial.categories)
@@ -111,12 +112,26 @@ export function ExpenseProvider({ children }) {
     [profile, subscription, company, departments, employees, clients, projects, vendors, shops, invoices, inventory, bills, categories, transactions, budgets, goals, recurring],
   )
 
-  // Load shared MongoDB workspace (same data for Firebase login and API login)
+  const addToast = useCallback((message, tone = 'info') => {
+    const id = createId()
+    setToasts((current) => [...current, { id, message, tone }])
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id))
+    }, 3200)
+  }, [])
+
+  // Load shared MongoDB workspace — database is the source of truth when online
   useEffect(() => {
-    if (!uid || !apiReady || !apiToken) return undefined
+    if (!uid || !apiReady || !apiToken) {
+      // Offline / no API session: device cache only
+      apiHydrated.current = true
+      setCloudReady(false)
+      return undefined
+    }
 
     let cancelled = false
     apiHydrated.current = false
+    setCloudReady(false)
 
     ;(async () => {
       try {
@@ -128,8 +143,11 @@ export function ExpenseProvider({ children }) {
         const remoteGoals = Array.isArray(data.goals) ? data.goals : []
         const remoteRecurring = Array.isArray(data.recurring) ? data.recurring : []
         const remoteCategories = Array.isArray(data.categories) ? data.categories : []
-
-        skipNextPersist.current = true
+        const hasRemoteLedger =
+          remoteTransactions.length > 0 ||
+          remoteBudgets.length > 0 ||
+          remoteGoals.length > 0 ||
+          remoteRecurring.length > 0
 
         if (data.profile) {
           setProfile((current) => ({
@@ -139,42 +157,41 @@ export function ExpenseProvider({ children }) {
           }))
         }
 
-        // Never wipe local money data with empty remote (categories-only responses used to do that).
         if (remoteCategories.length > 0) setCategories(remoteCategories)
-        if (remoteBudgets.length > 0) setBudgets(remoteBudgets)
-        if (remoteGoals.length > 0) setGoals(remoteGoals)
 
-        setTransactions((localTransactions) => {
-          const local = Array.isArray(localTransactions) ? localTransactions : []
-          // Prefer whichever side has more rows; if remote empty keep local.
-          if (remoteTransactions.length === 0) return sortTransactions(local, 'newest')
-          if (local.length > remoteTransactions.length) {
-            const remoteIds = new Set(remoteTransactions.map((item) => String(item.id)))
-            const localOnly = local.filter((item) => !remoteIds.has(String(item.id)))
-            const merged = applyRecurringMaterialization(
-              remoteRecurring,
-              [...remoteTransactions, ...localOnly],
+        // DB wins when it has ledger data; if cloud is empty, keep device data and upload it
+        if (hasRemoteLedger) {
+          skipNextPersist.current = true
+          if (remoteBudgets.length > 0) setBudgets(remoteBudgets)
+          if (remoteGoals.length > 0) setGoals(remoteGoals)
+          if (remoteRecurring.length > 0) setRecurring(remoteRecurring)
+          if (remoteTransactions.length > 0) {
+            const applied = applyRecurringMaterialization(
+              remoteRecurring.length > 0 ? remoteRecurring : recurringRef.current,
+              remoteTransactions,
               todayISO(),
             )
-            return sortTransactions(merged.transactions, 'newest')
+            setTransactions(sortTransactions(applied.transactions, 'newest'))
+            setRecurring(applied.recurring)
           }
-          const applied = applyRecurringMaterialization(remoteRecurring, remoteTransactions, todayISO())
-          return sortTransactions(applied.transactions, 'newest')
-        })
-
-        if (remoteRecurring.length > 0) setRecurring(remoteRecurring)
+        }
       } catch (error) {
         console.error('Failed to load workspace from API', error)
+        addToast(tr('toast.cloudLoadFailed'), 'warn')
       } finally {
-        if (!cancelled) apiHydrated.current = true
+        if (!cancelled) {
+          apiHydrated.current = true
+          setCloudReady(true)
+        }
       }
     })()
 
     return () => {
       cancelled = true
     }
-  }, [uid, apiReady, apiToken])
+  }, [uid, apiReady, apiToken, addToast, tr])
 
+  // Persist: MongoDB primary when signed in; localStorage is offline cache only
   useEffect(() => {
     if (!uid) return undefined
     if (!hydrated.current) {
@@ -186,9 +203,10 @@ export function ExpenseProvider({ children }) {
       return undefined
     }
 
+    // Device cache (fast offline read) — not the system of record
     saveState(persistPayload, uid, email)
 
-    if (!apiReady || !apiToken || !apiHydrated.current) return undefined
+    if (!apiReady || !apiToken || !apiHydrated.current || !cloudReady) return undefined
 
     const timer = window.setTimeout(() => {
       saveWorkspace({
@@ -203,13 +221,19 @@ export function ExpenseProvider({ children }) {
         budgets: persistPayload.budgets,
         goals: persistPayload.goals,
         recurring: persistPayload.recurring,
-      }).catch((error) => {
-        console.error('Failed to save workspace to API', error)
       })
-    }, 900)
+        .then(() => {
+          // Refresh device cache from what we just wrote to DB
+          saveState(persistPayload, uid, email)
+        })
+        .catch((error) => {
+          console.error('Failed to save workspace to API', error)
+          addToast(tr('toast.cloudSaveFailed'), 'warn')
+        })
+    }, 600)
 
     return () => window.clearTimeout(timer)
-  }, [persistPayload, uid, email, apiReady, apiToken])
+  }, [persistPayload, uid, email, apiReady, apiToken, cloudReady, addToast, tr])
 
   useEffect(() => {
     if (!user) return
@@ -218,13 +242,6 @@ export function ExpenseProvider({ children }) {
     setProfile((current) => (current.name ? current : { ...current, name: nextName }))
   }, [user])
 
-  const addToast = useCallback((message, tone = 'info') => {
-    const id = createId()
-    setToasts((current) => [...current, { id, message, tone }])
-    window.setTimeout(() => {
-      setToasts((current) => current.filter((toast) => toast.id !== id))
-    }, 3200)
-  }, [])
 
   const dismissToast = useCallback((id) => {
     setToasts((current) => current.filter((toast) => toast.id !== id))
