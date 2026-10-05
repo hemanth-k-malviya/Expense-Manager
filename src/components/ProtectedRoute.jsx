@@ -15,12 +15,21 @@ export function ProtectedRoute({ children }) {
   return children
 }
 
+const GUEST_ALWAYS_PATHS = new Set(['/forgot-password', '/reset-password', '/__/auth/action'])
+
 export function GuestRoute({ children }) {
   const { user, loading } = useAuth()
   const location = useLocation()
 
   if (loading) return <AuthSplash />
-  if (isPasswordResetAction(location)) return children
+  // Always allow password recovery — even with a stale session still in localStorage.
+  if (
+    GUEST_ALWAYS_PATHS.has(location.pathname) ||
+    location.pathname.startsWith('/reset-password/') ||
+    isPasswordResetAction(location)
+  ) {
+    return children
+  }
   if (user) return <Navigate to={APP_HOME} replace />
   return children
 }

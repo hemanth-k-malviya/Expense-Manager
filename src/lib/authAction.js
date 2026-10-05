@@ -1,4 +1,14 @@
+import { SITE_URL } from './site'
+
 const RESET_PATH = '/reset-password'
+
+const AUTHORIZED_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  'expenseso.vercel.app',
+  'expense-manager-8eb96.web.app',
+  'expense-manager-8eb96.firebaseapp.com',
+])
 
 function paramsFromHash(hash) {
   const raw = String(hash || '').replace(/^#/, '')
@@ -56,7 +66,24 @@ export function passwordResetPath(location) {
   return query ? `${RESET_PATH}?${query}` : RESET_PATH
 }
 
+function continueOrigin() {
+  if (typeof window === 'undefined') return SITE_URL
+  try {
+    const host = window.location.hostname
+    if (AUTHORIZED_HOSTS.has(host)) return window.location.origin
+  } catch {
+    // fall through
+  }
+  // Preview / unknown hosts are often not in Firebase authorized domains.
+  return SITE_URL
+}
+
+/** Continue URL after Firebase hosted reset (must use an authorized domain). */
 export function resetContinueUrl() {
-  if (typeof window === 'undefined') return `${RESET_PATH}`
-  return `${window.location.origin}${RESET_PATH}`
+  return `${continueOrigin()}/login`
+}
+
+/** Custom in-app reset handler URL (when Firebase action URL points at this SPA). */
+export function resetActionUrl() {
+  return `${continueOrigin()}${RESET_PATH}`
 }

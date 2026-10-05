@@ -71,13 +71,22 @@ export default defineConfig(({ mode }) => {
       geminiDevProxy(env),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg', 'favicon.png', 'favicon-48.png', 'apple-touch-icon.png'],
+        includeAssets: [
+          'favicon.svg',
+          'favicon.png',
+          'favicon-48.png',
+          'apple-touch-icon.png',
+          'pwa-192.png',
+          'pwa-192-maskable.png',
+          'pwa-512.png',
+          'pwa-512-maskable.png',
+        ],
         manifest: {
           name: 'Expense So — Expense Tracker',
           short_name: 'Expense So',
           description: 'Track daily expenses, budgets, and business books in one workspace.',
           theme_color: '#1d3434',
-          background_color: '#f6f7ef',
+          background_color: '#1d3434',
           display: 'standalone',
           orientation: 'portrait-primary',
           scope: '/',
@@ -85,12 +94,6 @@ export default defineConfig(({ mode }) => {
           id: '/',
           categories: ['finance', 'productivity', 'business'],
           icons: [
-            {
-              src: 'favicon.svg',
-              sizes: 'any',
-              type: 'image/svg+xml',
-              purpose: 'any',
-            },
             {
               src: 'pwa-192.png',
               sizes: '192x192',
@@ -104,10 +107,22 @@ export default defineConfig(({ mode }) => {
               purpose: 'any',
             },
             {
+              src: 'pwa-192-maskable.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+            {
               src: 'pwa-512-maskable.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
+            },
+            {
+              src: 'favicon.svg',
+              sizes: 'any',
+              type: 'image/svg+xml',
+              purpose: 'any',
             },
           ],
         },

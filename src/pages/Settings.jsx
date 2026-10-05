@@ -33,7 +33,7 @@ export default function Settings() {
     t,
     locale,
   } = useExpenses()
-  const { user, logout, sendPasswordReset, authErrorKey } = useAuth()
+  const { user, logout, changePassword, authErrorKey } = useAuth()
   const navigate = useNavigate()
 
   const fileRef = useRef(null)
@@ -57,7 +57,11 @@ export default function Settings() {
   const [recurringForm, setRecurringForm] = useState(emptyRecurringForm)
   const [resetOpen, setResetOpen] = useState(false)
   const [pendingBackup, setPendingBackup] = useState(null)
-  const [resetBusy, setResetBusy] = useState(false)
+  const [passwordBusy, setPasswordBusy] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
   const [categoryError, setCategoryError] = useState('')
   const [recurringError, setRecurringError] = useState('')
 
@@ -171,37 +175,85 @@ export default function Settings() {
       <section className="rounded-[12px] border border-[#e8ebe4] bg-white p-4 sm:rounded-[9px] sm:p-5">
         <h2 className="text-[18px] font-semibold text-[#263b39] sm:text-[20px]">{t('auth.account')}</h2>
         <p className="mt-1.5 break-all text-[14px] leading-6 text-[#7d8782] sm:text-[15px]">{t('auth.signedInAs', { email: user?.email || '—' })}</p>
-        <p className="mt-2 text-[14px] leading-6 text-[#7d8782] sm:text-[15px]">{t('auth.resetHelp')}</p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <button
-            type="button"
-            onClick={async () => {
-              setResetBusy(true)
-              try {
-                await sendPasswordReset(user?.email)
-                addToast(t('auth.resetSent', { email: user?.email || '' }), 'success')
-              } catch (caught) {
-                addToast(t(authErrorKey(caught)), 'warn')
-              } finally {
-                setResetBusy(false)
-              }
-            }}
-            disabled={resetBusy || !user?.email}
-            className="min-h-11 rounded-[8px] border border-[#dfe6df] px-4 py-2.5 text-[15px] font-semibold text-[#1d3434] disabled:opacity-50 sm:w-auto"
-          >
-            {resetBusy ? t('auth.working') : t('auth.resetPassword')}
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              await logout()
-              navigate('/login', { replace: true })
-            }}
-            className="min-h-11 rounded-[8px] bg-[#1d3434] px-4 py-2.5 text-[15px] font-semibold text-white sm:w-auto"
-          >
-            {t('auth.signOut')}
-          </button>
-        </div>
+        <p className="mt-2 text-[14px] leading-6 text-[#7d8782] sm:text-[15px]">{t('auth.changePasswordHelp')}</p>
+
+        <form
+          className="mt-4 max-w-md space-y-3"
+          data-allow-autocomplete
+          onSubmit={async (event) => {
+            event.preventDefault()
+            setPasswordError('')
+            if (newPassword.length < 6) {
+              setPasswordError(t('auth.needPassword'))
+              return
+            }
+            if (newPassword !== confirmPassword) {
+              setPasswordError(t('auth.mismatch'))
+              return
+            }
+            setPasswordBusy(true)
+            try {
+              await changePassword({ currentPassword, newPassword })
+              setCurrentPassword('')
+              setNewPassword('')
+              setConfirmPassword('')
+              addToast(t('auth.passwordChanged'), 'success')
+            } catch (caught) {
+              const key = authErrorKey(caught)
+              setPasswordError(key === 'auth.error.generic' && caught?.message ? caught.message : t(key))
+            } finally {
+              setPasswordBusy(false)
+            }
+          }}
+        >
+          <Field label={t('auth.currentPassword')} placeholder={t('auth.passwordPh')}>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              className={controlClass}
+            />
+          </Field>
+          <Field label={t('auth.newPassword')} placeholder={t('auth.passwordPh')}>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              className={controlClass}
+            />
+          </Field>
+          <Field label={t('auth.confirmPassword')} placeholder={t('auth.passwordPh')}>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              className={controlClass}
+            />
+          </Field>
+          {passwordError ? <p className="rounded-[10px] bg-[#fdecea] px-3 py-2 text-[12px] font-medium text-[#c45b45]">{passwordError}</p> : null}
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <button
+              type="submit"
+              disabled={passwordBusy}
+              className="min-h-11 rounded-[8px] border border-[#dfe6df] px-4 py-2.5 text-[15px] font-semibold text-[#1d3434] disabled:opacity-50 sm:w-auto"
+            >
+              {passwordBusy ? t('auth.working') : t('auth.changePassword')}
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await logout()
+                navigate('/login', { replace: true })
+              }}
+              className="min-h-11 rounded-[8px] bg-[#1d3434] px-4 py-2.5 text-[15px] font-semibold text-white sm:w-auto"
+            >
+              {t('auth.signOut')}
+            </button>
+          </div>
+        </form>
       </section>
 
       <section className="rounded-[12px] border border-[#e8ebe4] bg-white p-4 sm:rounded-[9px] sm:p-5">

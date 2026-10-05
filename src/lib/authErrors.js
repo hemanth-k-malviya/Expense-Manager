@@ -19,6 +19,8 @@ const KNOWN = new Set([
 ])
 
 export function authErrorKey(error) {
+  if (error?.status === 503) return 'auth.error.smtp-not-configured'
+  if (error?.status === 502) return 'auth.error.smtp-send-failed'
   const code = String(error?.code || '').replace(/^auth\//, '')
   return KNOWN.has(code) ? `auth.error.${code}` : 'auth.error.generic'
 }

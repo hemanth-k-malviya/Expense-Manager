@@ -241,11 +241,24 @@ export function ExpenseProvider({ children }) {
         needsCloudUploadRef.current = false
 
         if (data.profile) {
-          setProfile((current) => ({
-            ...current,
-            ...data.profile,
-            enabledBusinessFeatures: current.enabledBusinessFeatures,
-          }))
+          setProfile((current) => {
+            const remoteKey = String(data.profile.geminiApiKey || '').trim()
+            const localKey = String(current.geminiApiKey || '').trim()
+            // Keep a device-only key until it has been uploaded once
+            if (localKey && !remoteKey) needsCloudUploadRef.current = true
+            return {
+              ...current,
+              name: data.profile.name ?? current.name,
+              workspace: data.profile.workspace ?? current.workspace,
+              currency: data.profile.currency ?? current.currency,
+              language: data.profile.language ?? current.language,
+              geminiApiKey: remoteKey || localKey,
+              aiEnabled: remoteKey
+                ? Boolean(data.profile.aiEnabled)
+                : Boolean(data.profile.aiEnabled) || Boolean(current.aiEnabled),
+              enabledBusinessFeatures: current.enabledBusinessFeatures,
+            }
+          })
         }
 
         if (remoteCategories.length > 0) setCategories(remoteCategories)
@@ -289,14 +302,14 @@ export function ExpenseProvider({ children }) {
     }
   }, [uid, apiReady, apiToken, addToast, tr])
 
-  // Only when boot detected local-richer-than-DB, push once after hydrate settles
+  // Only when boot detected local-richer-than-DB (ledger or AI key), push once after hydrate
   useEffect(() => {
     if (!cloudReady || !apiReady || !apiToken) return undefined
     if (!needsCloudUploadRef.current) return undefined
 
     const timer = window.setTimeout(() => {
       const payload = persistPayloadRef.current
-      if (!payload || (payload.transactions?.length || 0) === 0) return
+      if (!payload) return
       needsCloudUploadRef.current = false
       pushWorkspaceToDb(payload, { quiet: true })
     }, 900)
@@ -512,9 +525,14 @@ export function ExpenseProvider({ children }) {
   const requirePremium = useCallback(() => true, [])
   const requireBusiness = useCallback(() => true, [])
 
-  const updateProfile = useCallback((patch) => {
-    setProfile((current) => ({ ...current, ...patch }))
-  }, [])
+  const updateProfile = useCallback(
+    (patch) => {
+      setProfile((current) => ({ ...current, ...patch }))
+      // Push AI key / profile prefs to Mongo so other devices get them after login
+      flushWorkspaceSoon()
+    },
+    [flushWorkspaceSoon],
+  )
 
   const setLanguage = useCallback(
     (code) => {

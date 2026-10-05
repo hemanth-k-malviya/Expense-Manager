@@ -3,6 +3,21 @@ import { readFileSync } from 'node:fs'
 
 const svg = readFileSync('public/favicon.svg')
 
+await sharp(svg, { density: 256 })
+  .resize(32, 32, { fit: 'contain', background: { r: 29, g: 52, b: 52, alpha: 1 } })
+  .png()
+  .toFile('public/favicon.png')
+
+await sharp(svg, { density: 256 })
+  .resize(48, 48, { fit: 'contain', background: { r: 29, g: 52, b: 52, alpha: 1 } })
+  .png()
+  .toFile('public/favicon-48.png')
+
+await sharp(svg, { density: 512 })
+  .resize(180, 180, { fit: 'contain', background: { r: 29, g: 52, b: 52, alpha: 1 } })
+  .png()
+  .toFile('public/apple-touch-icon.png')
+
 await sharp(svg, { density: 512 })
   .resize(192, 192, { fit: 'contain', background: { r: 29, g: 52, b: 52, alpha: 1 } })
   .png()
@@ -13,7 +28,7 @@ await sharp(svg, { density: 1024 })
   .png()
   .toFile('public/pwa-512.png')
 
-// Maskable: same website mark with safe padding for Android adaptive icons
+// Maskable: same website wallet mark with safe padding for Android adaptive icons
 const padded = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" fill="#1d3434"/>
   <g transform="translate(96 96) scale(10)">
@@ -26,10 +41,6 @@ const padded = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 </svg>`)
 
 await sharp(padded).resize(512, 512).png().toFile('public/pwa-512-maskable.png')
+await sharp(padded).resize(192, 192).png().toFile('public/pwa-192-maskable.png')
 
-await sharp(svg, { density: 512 })
-  .resize(180, 180, { fit: 'contain', background: { r: 29, g: 52, b: 52, alpha: 1 } })
-  .png()
-  .toFile('public/apple-touch-icon.png')
-
-console.log('PWA icons regenerated from favicon.svg')
+console.log('PWA icons restored to previous wallet mark')

@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import DisableInputSuggestions from './components/DisableInputSuggestions'
 import Layout from './components/Layout'
 import PublicLayout from './components/PublicLayout'
 import AuthActionRedirect from './components/AuthActionRedirect'
@@ -48,6 +49,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <DisableInputSuggestions />
         <AuthActionRedirect>
           <Routes>
           <Route element={<PublicLayout />}>
@@ -85,6 +87,7 @@ export default function App() {
               </GuestRoute>
             }
           />
+          <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/__/auth/action" element={<ResetPassword />} />
           <Route

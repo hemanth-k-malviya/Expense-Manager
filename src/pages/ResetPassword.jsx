@@ -1,16 +1,24 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import Field, { controlClass } from '../components/Field'
 import { useAuth } from '../context/AuthContext'
 import { authActionFromLocation } from '../lib/authAction'
 import AuthScreen, { useAuthPageI18n } from './AuthScreen'
 
 export default function ResetPassword() {
-  const { verifyResetCode, completePasswordReset, configured, authErrorKey } = useAuth()
+  const { verifyResetCode, completePasswordReset, completeApiPasswordReset, authErrorKey } = useAuth()
   const { language, setLanguage, t } = useAuthPageI18n()
   const location = useLocation()
+  const { resetToken: pathToken } = useParams()
+  const [searchParams] = useSearchParams()
   const code = authActionFromLocation(location).oobCode
-  const [email, setEmail] = useState('')
+  const apiToken = String(
+    pathToken || searchParams.get('token') || searchParams.get('resetToken') || '',
+  ).trim()
+  const emailFromQuery = String(searchParams.get('email') || '').trim()
+  const isApiReset = Boolean(apiToken) && !code
+
+  const [email, setEmail] = useState(emailFromQuery)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -18,6 +26,15 @@ export default function ResetPassword() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+
+  const canSubmit = useMemo(() => {
+    if (isApiReset) return Boolean(apiToken)
+    return Boolean(code && email)
+  }, [apiToken, code, email, isApiReset])
+
+  useEffect(() => {
+    if (emailFromQuery) setEmail(emailFromQuery)
+  }, [emailFromQuery])
 
   useEffect(() => {
     if (!code) {
@@ -53,19 +70,33 @@ export default function ResetPassword() {
     setBusy(true)
     setError('')
     try {
-      await completePasswordReset(code, password)
+      if (isApiReset) {
+        await completeApiPasswordReset(apiToken, password)
+      } else {
+        await completePasswordReset(code, password)
+      }
       setDone(true)
     } catch (caught) {
-      setError(t(authErrorKey(caught)))
+      const key = authErrorKey(caught)
+      setError(key === 'auth.error.generic' && caught?.message ? caught.message : t(key))
     } finally {
       setBusy(false)
     }
   }
 
+  const showForm = !checking && !done && canSubmit
+  const showMissing = !checking && !done && !canSubmit
+
   return (
     <AuthScreen
       title={t('auth.resetPageTitle')}
-      subtitle={email ? t('auth.resetPageSubtitle', { email }) : t('auth.resetPageMissing')}
+      subtitle={
+        email
+          ? t('auth.resetPageSubtitle', { email })
+          : isApiReset
+            ? t('auth.resetPageSubtitleGeneric')
+            : t('auth.resetPageMissing')
+      }
       t={t}
       language={language}
       setLanguage={setLanguage}
@@ -79,8 +110,9 @@ export default function ResetPassword() {
           </Link>
         </div>
       ) : null}
-      {!checking && !done && code && email ? (
-        <form className="space-y-4" onSubmit={submit}>
+      {showForm ? (
+        <form className="space-y-4" onSubmit={submit} data-allow-autocomplete>
+          <p className="text-[13px] leading-6 text-[#5b6b67]">{t('auth.resetPageHelp')}</p>
           <Field label={t('auth.newPassword')} placeholder={t('auth.passwordPh')}>
             <div className="relative">
               <input
@@ -89,6 +121,7 @@ export default function ResetPassword() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className={`${controlClass} pr-16`}
+                autoFocus
               />
               <button
                 type="button"
@@ -111,18 +144,19 @@ export default function ResetPassword() {
           {error ? <p className="rounded-[10px] bg-[#fdecea] px-3 py-2 text-[12px] font-medium text-[#c45b45]">{error}</p> : null}
           <button
             type="submit"
-            disabled={busy || !configured}
+            disabled={busy}
             className="min-h-11 w-full rounded-[8px] bg-[#e96d52] text-[13px] font-semibold text-white disabled:opacity-50"
           >
             {busy ? t('auth.working') : t('auth.savePassword')}
           </button>
         </form>
       ) : null}
-      {!checking && !done && (!code || error) && !email ? (
+      {showMissing ? (
         <div>
           {error ? <p className="mb-4 rounded-[10px] bg-[#fdecea] px-3 py-2 text-[12px] font-medium text-[#c45b45]">{error}</p> : null}
+          <p className="mb-4 text-[13px] leading-6 text-[#5b6b67]">{t('auth.resetPageMissing')}</p>
           <Link to="/forgot-password" className="inline-flex min-h-11 items-center rounded-[8px] bg-[#1d3434] px-4 text-[13px] font-semibold text-white">
-            {t('auth.goLogin')}
+            {t('auth.requestNewReset')}
           </Link>
         </div>
       ) : null}

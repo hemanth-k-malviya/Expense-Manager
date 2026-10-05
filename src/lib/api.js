@@ -95,6 +95,53 @@ export async function apiRegister({ name, email, password, currency, language, w
   return result.data
 }
 
+/** Keep Mongo password in sync after Firebase password reset / email login. */
+export async function syncPasswordWithApi({ idToken, password }) {
+  const result = await request('/auth/sync-password', {
+    method: 'POST',
+    body: { idToken, password },
+    token: null,
+  })
+  if (result?.data?.token && result?.data?.user) {
+    setApiSession(result.data.token, result.data.user)
+  }
+  return result.data
+}
+
+export async function apiForgotPassword(email) {
+  const result = await request('/auth/forgot-password', {
+    method: 'POST',
+    body: {
+      email,
+      origin: typeof window !== 'undefined' ? window.location.origin : undefined,
+    },
+    token: null,
+  })
+  return result.data
+}
+
+export async function apiResetPassword({ token, password }) {
+  const result = await request('/auth/reset-password', {
+    method: 'POST',
+    body: { token, password },
+    token: null,
+  })
+  if (result?.data?.token && result?.data?.user) {
+    setApiSession(result.data.token, result.data.user)
+  } else if (result?.data?.token) {
+    setApiSession(result.data.token, getStoredApiUser())
+  }
+  return result.data
+}
+
+export async function apiChangePassword({ currentPassword, newPassword }) {
+  const result = await request('/auth/change-password', {
+    method: 'PUT',
+    body: { currentPassword, newPassword },
+  })
+  return result
+}
+
 export async function fetchWorkspace() {
   const result = await request('/workspace')
   return result.data
@@ -217,6 +264,8 @@ export function sanitizeWorkspacePayload(payload = {}) {
       workspace: payload.profile?.workspace,
       currency: payload.profile?.currency,
       language: payload.profile?.language,
+      aiEnabled: Boolean(payload.profile?.aiEnabled),
+      geminiApiKey: String(payload.profile?.geminiApiKey || '').trim().slice(0, 256),
     },
     categories,
     transactions,

@@ -53,7 +53,7 @@ export default function Login() {
       {!configured ? <p className="mb-4 rounded-[10px] bg-[#f7efe6] px-3 py-2 text-[12px] text-[#8a5a2b]">{t('auth.missingConfig')}</p> : null}
       <GoogleSignInButton t={t} />
       <p className="my-5 text-center text-[11px] font-semibold tracking-[0.12em] text-[#9aa39c]">{t('auth.orEmail')}</p>
-      <form className="space-y-4" onSubmit={submit}>
+      <form className="space-y-4" onSubmit={submit} data-allow-autocomplete>
         <Field label={t('auth.email')} placeholder={t('auth.emailPh')}>
           <input
             type="email"

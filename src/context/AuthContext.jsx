@@ -4,22 +4,26 @@ import {
   confirmPasswordReset,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
-  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
+  updatePassword,
   updateProfile,
   verifyPasswordResetCode,
 } from 'firebase/auth'
 import { authErrorKey } from '../lib/authErrors'
 import {
+  apiChangePassword,
+  apiForgotPassword,
   apiLogin,
   apiRegister,
+  apiResetPassword,
   clearApiSession,
   getApiToken,
   getStoredApiUser,
   setApiSession,
   syncFirebaseWithApi,
+  syncPasswordWithApi,
 } from '../lib/api'
 import { getFirebaseAuth, isFirebaseConfigured } from '../lib/firebase'
 
@@ -185,13 +189,19 @@ export function AuthProvider({ children }) {
           const credential = await signInWithEmailAndPassword(auth, email, password)
           const synced = await syncFirebaseSession(credential.user)
 
-          // Link API password login only when we still lack a real API JWT
-          if (synced?.fallback) {
-            try {
-              const data = await apiLogin({ email, password })
-              applyApiSession(data)
-            } catch {
-              // Firebase token fallback already applied
+          // Keep Mongo password aligned after Firebase reset / password change
+          try {
+            const idToken = await credential.user.getIdToken()
+            const linked = await syncPasswordWithApi({ idToken, password })
+            if (linked?.token) applyApiSession(linked)
+          } catch {
+            if (synced?.fallback) {
+              try {
+                const data = await apiLogin({ email, password })
+                applyApiSession(data)
+              } catch {
+                // Firebase token fallback already applied
+              }
             }
           }
 
@@ -230,33 +240,52 @@ export function AuthProvider({ children }) {
   }, [syncFirebaseSession])
 
   const sendPasswordReset = useCallback(async (email) => {
-    const auth = getFirebaseAuth()
-    if (!auth) {
-      const error = new Error('Firebase is not configured')
-      error.code = 'auth/operation-not-allowed'
-      throw error
-    }
     const nextEmail = String(email || '').trim()
     if (!nextEmail) {
       const error = new Error('Missing email')
       error.code = 'auth/missing-email'
       throw error
     }
-    auth.useDeviceLanguage()
-    try {
-      await sendPasswordResetEmail(auth, nextEmail, {
-        url: `${window.location.origin}/login`,
-        handleCodeInApp: false,
-      })
-    } catch (caught) {
-      const code = String(caught?.code || '')
-      if (code.includes('unauthorized-continue-uri') || code.includes('invalid-continue-uri')) {
-        await sendPasswordResetEmail(auth, nextEmail)
-        return
-      }
-      throw caught
+
+    // Nodemailer via API is the real delivery path (Firebase mail often never arrives).
+    const data = await apiForgotPassword(nextEmail)
+    return {
+      email: nextEmail,
+      sender: data?.sender || '',
     }
   }, [])
+
+  const changePassword = useCallback(
+    async ({ currentPassword, newPassword }) => {
+      await apiChangePassword({ currentPassword, newPassword })
+
+      const auth = getFirebaseAuth()
+      const current = auth?.currentUser
+      if (current) {
+        try {
+          await updatePassword(current, newPassword)
+        } catch {
+          // Requires recent login; API password is already updated.
+        }
+        try {
+          const idToken = await current.getIdToken(true)
+          await syncPasswordWithApi({ idToken, password: newPassword })
+        } catch {
+          // API change already succeeded.
+        }
+      }
+    },
+    [],
+  )
+
+  const completeApiPasswordReset = useCallback(
+    async (token, password) => {
+      const data = await apiResetPassword({ token, password })
+      if (data?.token) applyApiSession(data)
+      return data
+    },
+    [applyApiSession],
+  )
 
   const verifyResetCode = useCallback(async (code) => {
     const auth = getFirebaseAuth()
@@ -268,15 +297,30 @@ export function AuthProvider({ children }) {
     return verifyPasswordResetCode(auth, code)
   }, [])
 
-  const completePasswordReset = useCallback(async (code, password) => {
-    const auth = getFirebaseAuth()
-    if (!auth) {
-      const error = new Error('Firebase is not configured')
-      error.code = 'auth/operation-not-allowed'
-      throw error
-    }
-    await confirmPasswordReset(auth, code, password)
-  }, [])
+  const completePasswordReset = useCallback(
+    async (code, password) => {
+      const auth = getFirebaseAuth()
+      if (!auth) {
+        const error = new Error('Firebase is not configured')
+        error.code = 'auth/operation-not-allowed'
+        throw error
+      }
+      const email = await verifyPasswordResetCode(auth, code)
+      await confirmPasswordReset(auth, code, password)
+
+      // Sign in with the new password and sync it to the API account.
+      try {
+        const credential = await signInWithEmailAndPassword(auth, email, password)
+        await syncFirebaseSession(credential.user)
+        const idToken = await credential.user.getIdToken()
+        const linked = await syncPasswordWithApi({ idToken, password })
+        if (linked?.token) applyApiSession(linked)
+      } catch {
+        // Firebase password is already updated; API sync can happen on next login.
+      }
+    },
+    [applyApiSession, syncFirebaseSession],
+  )
 
   const logout = useCallback(async () => {
     clearSession()
@@ -297,8 +341,10 @@ export function AuthProvider({ children }) {
       login,
       loginWithGoogle,
       sendPasswordReset,
+      changePassword,
       verifyResetCode,
       completePasswordReset,
+      completeApiPasswordReset,
       logout,
       authErrorKey,
     }),
@@ -314,8 +360,10 @@ export function AuthProvider({ children }) {
       login,
       loginWithGoogle,
       sendPasswordReset,
+      changePassword,
       verifyResetCode,
       completePasswordReset,
+      completeApiPasswordReset,
       logout,
     ],
   )
