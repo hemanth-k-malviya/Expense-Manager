@@ -51,6 +51,10 @@ export function ExpenseProvider({ children }) {
   const skipNextPersist = useRef(false)
   const transactionsRef = useRef(initial.transactions)
   const recurringRef = useRef(initial.recurring)
+  const cloudToastAtRef = useRef(0)
+  const savingCloudRef = useRef(false)
+  const pendingCloudSaveRef = useRef(null)
+  const needsCloudUploadRef = useRef(false)
 
   const [cloudReady, setCloudReady] = useState(false)
   const [profile, setProfile] = useState(initial.profile)
@@ -77,6 +81,7 @@ export function ExpenseProvider({ children }) {
 
   const language = profile.language || DEFAULT_LANGUAGE
   const languageRef = useRef(language)
+  const persistPayloadRef = useRef(null)
   languageRef.current = language
   transactionsRef.current = transactions
   recurringRef.current = recurring
@@ -111,6 +116,7 @@ export function ExpenseProvider({ children }) {
     }),
     [profile, subscription, company, departments, employees, clients, projects, vendors, shops, invoices, inventory, bills, categories, transactions, budgets, goals, recurring],
   )
+  persistPayloadRef.current = persistPayload
 
   const addToast = useCallback((message, tone = 'info') => {
     const id = createId()
@@ -119,6 +125,86 @@ export function ExpenseProvider({ children }) {
       setToasts((current) => current.filter((toast) => toast.id !== id))
     }, 3200)
   }, [])
+
+  const applyCloudWorkspace = useCallback((saved, basePayload) => {
+    if (!saved) return
+    // Only mirror to device cache — do NOT replace React state with the API echo.
+    // Replacing state after save races with newer local edits and drops unsynced rows.
+    saveState(
+      {
+        ...basePayload,
+        categories: saved.categories?.length ? saved.categories : basePayload.categories,
+        transactions: Array.isArray(saved.transactions) ? saved.transactions : basePayload.transactions,
+        budgets: Array.isArray(saved.budgets) ? saved.budgets : basePayload.budgets,
+        goals: Array.isArray(saved.goals) ? saved.goals : basePayload.goals,
+        recurring: Array.isArray(saved.recurring) ? saved.recurring : basePayload.recurring,
+      },
+      uid,
+      email,
+    )
+  }, [uid, email])
+
+  const pushWorkspaceToDb = useCallback(
+    async (payload, { quiet = false } = {}) => {
+      if (!apiReady || !apiToken) return false
+      if (savingCloudRef.current) {
+        // Another save is in flight — mark that the latest payload still needs flushing
+        pendingCloudSaveRef.current = payload
+        return false
+      }
+
+      savingCloudRef.current = true
+      pendingCloudSaveRef.current = null
+      try {
+        const saved = await saveWorkspace({
+          profile: payload.profile,
+          categories: payload.categories,
+          transactions: sortTransactions(payload.transactions, 'newest'),
+          budgets: payload.budgets,
+          goals: payload.goals,
+          recurring: payload.recurring,
+        })
+        applyCloudWorkspace(saved, payload)
+        return true
+      } catch (error) {
+        console.error('Failed to save workspace to API', error)
+        saveState(payload, uid, email)
+        if (!quiet) {
+          const now = Date.now()
+          if (now - cloudToastAtRef.current > 12000) {
+            cloudToastAtRef.current = now
+            const detail = error?.message ? String(error.message) : ''
+            addToast(
+              detail && detail !== 'Failed to fetch'
+                ? `${tr('toast.cloudSaveFailed')} (${detail})`
+                : tr('toast.cloudSaveFailed'),
+              'warn',
+            )
+          }
+        }
+        return false
+      } finally {
+        savingCloudRef.current = false
+        const pending = pendingCloudSaveRef.current
+        if (pending) {
+          pendingCloudSaveRef.current = null
+          window.setTimeout(() => {
+            pushWorkspaceToDb(pending, { quiet: true })
+          }, 250)
+        }
+      }
+    },
+    [apiReady, apiToken, uid, email, addToast, tr, applyCloudWorkspace],
+  )
+
+  const flushWorkspaceSoon = useCallback(() => {
+    window.setTimeout(() => {
+      if (!apiReady || !apiToken || !apiHydrated.current) return
+      const payload = persistPayloadRef.current
+      if (!payload) return
+      pushWorkspaceToDb(payload)
+    }, 400)
+  }, [apiReady, apiToken, pushWorkspaceToDb])
 
   // Load shared MongoDB workspace — database is the source of truth when online
   useEffect(() => {
@@ -149,6 +235,11 @@ export function ExpenseProvider({ children }) {
           remoteGoals.length > 0 ||
           remoteRecurring.length > 0
 
+        const localCount = transactionsRef.current.length
+        const remoteCount = remoteTransactions.length
+        const localRecurring = recurringRef.current || []
+        needsCloudUploadRef.current = false
+
         if (data.profile) {
           setProfile((current) => ({
             ...current,
@@ -159,25 +250,32 @@ export function ExpenseProvider({ children }) {
 
         if (remoteCategories.length > 0) setCategories(remoteCategories)
 
-        // DB wins when it has ledger data; if cloud is empty, keep device data and upload it
-        if (hasRemoteLedger) {
+        if (hasRemoteLedger && remoteCount >= localCount) {
+          // Cloud is equal/newer — show DB data in the UI
           skipNextPersist.current = true
           if (remoteBudgets.length > 0) setBudgets(remoteBudgets)
           if (remoteGoals.length > 0) setGoals(remoteGoals)
-          if (remoteRecurring.length > 0) setRecurring(remoteRecurring)
-          if (remoteTransactions.length > 0) {
-            const applied = applyRecurringMaterialization(
-              remoteRecurring.length > 0 ? remoteRecurring : recurringRef.current,
-              remoteTransactions,
-              todayISO(),
-            )
-            setTransactions(sortTransactions(applied.transactions, 'newest'))
-            setRecurring(applied.recurring)
-          }
+          const applied = applyRecurringMaterialization(
+            remoteRecurring.length > 0 ? remoteRecurring : localRecurring,
+            remoteTransactions,
+            todayISO(),
+          )
+          setTransactions(sortTransactions(applied.transactions, 'newest'))
+          setRecurring(applied.recurring)
+        } else if (localCount > 0 && localCount > remoteCount) {
+          // Device has rows missing from DB — keep UI as-is and upload after hydrate
+          skipNextPersist.current = false
+          needsCloudUploadRef.current = true
+        } else if (!hasRemoteLedger && localCount === 0) {
+          skipNextPersist.current = true
         }
       } catch (error) {
         console.error('Failed to load workspace from API', error)
-        addToast(tr('toast.cloudLoadFailed'), 'warn')
+        const now = Date.now()
+        if (now - cloudToastAtRef.current > 12000) {
+          cloudToastAtRef.current = now
+          addToast(tr('toast.cloudLoadFailed'), 'warn')
+        }
       } finally {
         if (!cancelled) {
           apiHydrated.current = true
@@ -190,6 +288,20 @@ export function ExpenseProvider({ children }) {
       cancelled = true
     }
   }, [uid, apiReady, apiToken, addToast, tr])
+
+  // Only when boot detected local-richer-than-DB, push once after hydrate settles
+  useEffect(() => {
+    if (!cloudReady || !apiReady || !apiToken) return undefined
+    if (!needsCloudUploadRef.current) return undefined
+
+    const timer = window.setTimeout(() => {
+      const payload = persistPayloadRef.current
+      if (!payload || (payload.transactions?.length || 0) === 0) return
+      needsCloudUploadRef.current = false
+      pushWorkspaceToDb(payload, { quiet: true })
+    }, 900)
+    return () => window.clearTimeout(timer)
+  }, [cloudReady, apiReady, apiToken, pushWorkspaceToDb])
 
   // Persist: MongoDB primary when signed in; localStorage is offline cache only
   useEffect(() => {
@@ -209,31 +321,11 @@ export function ExpenseProvider({ children }) {
     if (!apiReady || !apiToken || !apiHydrated.current || !cloudReady) return undefined
 
     const timer = window.setTimeout(() => {
-      saveWorkspace({
-        profile: {
-          name: persistPayload.profile.name,
-          workspace: persistPayload.profile.workspace,
-          currency: persistPayload.profile.currency,
-          language: persistPayload.profile.language,
-        },
-        categories: persistPayload.categories,
-        transactions: sortTransactions(persistPayload.transactions, 'newest'),
-        budgets: persistPayload.budgets,
-        goals: persistPayload.goals,
-        recurring: persistPayload.recurring,
-      })
-        .then(() => {
-          // Refresh device cache from what we just wrote to DB
-          saveState(persistPayload, uid, email)
-        })
-        .catch((error) => {
-          console.error('Failed to save workspace to API', error)
-          addToast(tr('toast.cloudSaveFailed'), 'warn')
-        })
+      pushWorkspaceToDb(persistPayload)
     }, 600)
 
     return () => window.clearTimeout(timer)
-  }, [persistPayload, uid, email, apiReady, apiToken, cloudReady, addToast, tr])
+  }, [persistPayload, uid, email, apiReady, apiToken, cloudReady, pushWorkspaceToDb])
 
   useEffect(() => {
     if (!user) return
@@ -475,8 +567,9 @@ export function ExpenseProvider({ children }) {
             : tr('toast.expenseAdded'),
       'success',
     )
+    flushWorkspaceSoon()
     return next
-  }, [addToast, tr])
+  }, [addToast, tr, flushWorkspaceSoon])
 
   const updateTransaction = useCallback((id, payload) => {
     const savings = Boolean(payload.savings) || payload.category === 'Savings'
@@ -506,7 +599,8 @@ export function ExpenseProvider({ children }) {
       ),
     )
     addToast(tr('toast.txUpdated'), 'success')
-  }, [addToast, tr])
+    flushWorkspaceSoon()
+  }, [addToast, tr, flushWorkspaceSoon])
 
   const markCreditPaid = useCallback(
     (id, { paymentMethod = 'Cash', date } = {}) => {
@@ -535,20 +629,23 @@ export function ExpenseProvider({ children }) {
         ]
       })
       addToast(tr('toast.creditPaid'), 'success')
+      flushWorkspaceSoon()
     },
-    [addToast, tr],
+    [addToast, tr, flushWorkspaceSoon],
   )
 
   const setTransactionStatus = useCallback((id, status) => {
     if (!requireBusiness('approvals')) return
     setTransactions((current) => current.map((transaction) => (transaction.id === id ? { ...transaction, status } : transaction)))
     addToast(tr('toast.claim', { status: tr(`status.${status}`) }), 'success')
-  }, [addToast, requireBusiness])
+    flushWorkspaceSoon()
+  }, [addToast, requireBusiness, flushWorkspaceSoon])
 
   const deleteTransaction = useCallback((id) => {
     setTransactions((current) => current.filter((transaction) => transaction.id !== id))
     addToast(tr('toast.txDeleted'), 'success')
-  }, [addToast])
+    flushWorkspaceSoon()
+  }, [addToast, flushWorkspaceSoon])
 
   const upsertBudget = useCallback((payload) => {
     setBudgets((current) => {

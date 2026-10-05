@@ -70,25 +70,37 @@ export function AuthProvider({ children }) {
         return null
       }
 
-      const idToken = await nextFirebaseUser.getIdToken()
+      // Force refresh so workspace saves don't fail on expired Firebase tokens
+      const idToken = await nextFirebaseUser.getIdToken(true)
 
       try {
         const data = await syncFirebaseWithApi(idToken)
         applyApiSession(data)
         return data
       } catch (error) {
-        // API protect() already accepts Firebase ID tokens — keep the user signed in.
-        const fallbackUser = {
-          id: nextFirebaseUser.uid,
-          firebaseUid: nextFirebaseUser.uid,
-          email: nextFirebaseUser.email || '',
-          name: nextFirebaseUser.displayName || nextFirebaseUser.email?.split('@')[0] || '',
+        // Retry once after a short delay (Render cold start)
+        try {
+          await new Promise((resolve) => window.setTimeout(resolve, 1200))
+          const retryToken = await nextFirebaseUser.getIdToken(true)
+          const data = await syncFirebaseWithApi(retryToken)
+          applyApiSession(data)
+          return data
+        } catch (retryError) {
+          const fallbackUser = {
+            id: nextFirebaseUser.uid,
+            firebaseUid: nextFirebaseUser.uid,
+            email: nextFirebaseUser.email || '',
+            name: nextFirebaseUser.displayName || nextFirebaseUser.email?.split('@')[0] || '',
+          }
+          applyApiSession({ token: idToken, user: fallbackUser })
+          if (import.meta.env.DEV) {
+            console.warn(
+              'API /auth/firebase unavailable; using Firebase token for API calls',
+              retryError?.message || error?.message || error,
+            )
+          }
+          return { token: idToken, user: fallbackUser, fallback: true }
         }
-        applyApiSession({ token: idToken, user: fallbackUser })
-        if (import.meta.env.DEV) {
-          console.warn('API /auth/firebase unavailable; using Firebase token for API calls', error?.message || error)
-        }
-        return { token: idToken, user: fallbackUser, fallback: true }
       }
     },
     [applyApiSession, clearSession],
