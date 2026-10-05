@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import Field, { controlClass } from '../components/Field'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import ConfirmDialog from '../components/ConfirmDialog'
-import InstallAppPanel from '../components/InstallAppPanel'
 import { DeleteIconButton, EditIconButton } from '../components/ActionIcons'
 import Modal from '../components/Modal'
 import { useExpenses } from '../context/ExpenseContext'
@@ -167,93 +166,110 @@ export default function Settings() {
       </section>
 
       <section className="rounded-[12px] border border-[#e8ebe4] bg-white p-4 sm:rounded-[9px] sm:p-5">
-        <h2 className="text-[18px] font-semibold text-[#263b39] sm:text-[20px]">{t('pwa.title')}</h2>
-        <p className="mt-1.5 text-[14px] leading-6 text-[#7d8782] sm:text-[15px]">{t('pwa.help')}</p>
-        <InstallAppPanel t={t} />
-      </section>
-
-      <section className="rounded-[12px] border border-[#e8ebe4] bg-white p-4 sm:rounded-[9px] sm:p-5">
-        <h2 className="text-[18px] font-semibold text-[#263b39] sm:text-[20px]">{t('auth.account')}</h2>
-        <p className="mt-1.5 break-all text-[14px] leading-6 text-[#7d8782] sm:text-[15px]">{t('auth.signedInAs', { email: user?.email || '—' })}</p>
-        <p className="mt-2 text-[14px] leading-6 text-[#7d8782] sm:text-[15px]">{t('auth.changePasswordHelp')}</p>
-
-        <form
-          className="mt-4 max-w-md space-y-3"
-          data-allow-autocomplete
-          onSubmit={async (event) => {
-            event.preventDefault()
-            setPasswordError('')
-            if (newPassword.length < 6) {
-              setPasswordError(t('auth.needPassword'))
-              return
-            }
-            if (newPassword !== confirmPassword) {
-              setPasswordError(t('auth.mismatch'))
-              return
-            }
-            setPasswordBusy(true)
-            try {
-              await changePassword({ currentPassword, newPassword })
-              setCurrentPassword('')
-              setNewPassword('')
-              setConfirmPassword('')
-              addToast(t('auth.passwordChanged'), 'success')
-            } catch (caught) {
-              const key = authErrorKey(caught)
-              setPasswordError(key === 'auth.error.generic' && caught?.message ? caught.message : t(key))
-            } finally {
-              setPasswordBusy(false)
-            }
-          }}
-        >
-          <Field label={t('auth.currentPassword')} placeholder={t('auth.passwordPh')}>
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-              className={controlClass}
-            />
-          </Field>
-          <Field label={t('auth.newPassword')} placeholder={t('auth.passwordPh')}>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              className={controlClass}
-            />
-          </Field>
-          <Field label={t('auth.confirmPassword')} placeholder={t('auth.passwordPh')}>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              className={controlClass}
-            />
-          </Field>
-          {passwordError ? <p className="rounded-[10px] bg-[#fdecea] px-3 py-2 text-[12px] font-medium text-[#c45b45]">{passwordError}</p> : null}
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <button
-              type="submit"
-              disabled={passwordBusy}
-              className="min-h-11 rounded-[8px] border border-[#dfe6df] px-4 py-2.5 text-[15px] font-semibold text-[#1d3434] disabled:opacity-50 sm:w-auto"
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+            <div className="min-w-0">
+              <h2 className="text-[18px] font-semibold text-[#263b39] sm:text-[20px]">{t('auth.account')}</h2>
+              <p className="mt-1 break-all text-[13px] leading-5 text-[#7d8782] sm:text-[14px]">
+                {user?.email || '—'}
+              </p>
+            </div>
+            <span
+              aria-hidden="true"
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[#e0e6e0] text-[#5b6b67] transition group-open:rotate-180"
             >
-              {passwordBusy ? t('auth.working') : t('auth.changePassword')}
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await logout()
-                navigate('/login', { replace: true })
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path
+                  fillRule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </span>
+          </summary>
+
+          <div className="mt-4 border-t border-[#eef1ec] pt-4">
+            <p className="text-[14px] leading-6 text-[#7d8782] sm:text-[15px]">{t('auth.changePasswordHelp')}</p>
+
+            <form
+              className="mt-4 max-w-md space-y-3"
+              data-allow-autocomplete
+              onSubmit={async (event) => {
+                event.preventDefault()
+                setPasswordError('')
+                if (newPassword.length < 6) {
+                  setPasswordError(t('auth.needPassword'))
+                  return
+                }
+                if (newPassword !== confirmPassword) {
+                  setPasswordError(t('auth.mismatch'))
+                  return
+                }
+                setPasswordBusy(true)
+                try {
+                  await changePassword({ currentPassword, newPassword })
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmPassword('')
+                  addToast(t('auth.passwordChanged'), 'success')
+                } catch (caught) {
+                  const key = authErrorKey(caught)
+                  setPasswordError(key === 'auth.error.generic' && caught?.message ? caught.message : t(key))
+                } finally {
+                  setPasswordBusy(false)
+                }
               }}
-              className="min-h-11 rounded-[8px] bg-[#1d3434] px-4 py-2.5 text-[15px] font-semibold text-white sm:w-auto"
             >
-              {t('auth.signOut')}
-            </button>
+              <Field label={t('auth.currentPassword')} placeholder={t('auth.passwordPh')}>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  className={controlClass}
+                />
+              </Field>
+              <Field label={t('auth.newPassword')} placeholder={t('auth.passwordPh')}>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  className={controlClass}
+                />
+              </Field>
+              <Field label={t('auth.confirmPassword')} placeholder={t('auth.passwordPh')}>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  className={controlClass}
+                />
+              </Field>
+              {passwordError ? <p className="rounded-[10px] bg-[#fdecea] px-3 py-2 text-[12px] font-medium text-[#c45b45]">{passwordError}</p> : null}
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <button
+                  type="submit"
+                  disabled={passwordBusy}
+                  className="min-h-11 rounded-[8px] border border-[#dfe6df] px-4 py-2.5 text-[15px] font-semibold text-[#1d3434] disabled:opacity-50 sm:w-auto"
+                >
+                  {passwordBusy ? t('auth.working') : t('auth.changePassword')}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await logout()
+                    navigate('/login', { replace: true })
+                  }}
+                  className="min-h-11 rounded-[8px] bg-[#1d3434] px-4 py-2.5 text-[15px] font-semibold text-white sm:w-auto"
+                >
+                  {t('auth.signOut')}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </details>
       </section>
 
       <section className="rounded-[12px] border border-[#e8ebe4] bg-white p-4 sm:rounded-[9px] sm:p-5">

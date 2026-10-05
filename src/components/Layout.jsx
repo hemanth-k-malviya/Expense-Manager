@@ -13,6 +13,7 @@ import ReminderPopup from './ReminderPopup'
 import { ASSISTANT_EVENT } from '../lib/assistant'
 import { isAiAssistantEnabled } from '../lib/gemini'
 import { formVariantFor } from '../lib/ledger'
+import NavIcon from './NavIcons'
 
 const pageTitleKeys = {
   '/app': 'nav.overview',
@@ -33,8 +34,8 @@ const pageTitleKeys = {
 }
 
 const mobileTabs = [
-  { to: '/app', labelKey: 'tabs.home', icon: '◫', end: true },
-  { to: '/transactions', labelKey: 'tabs.activity', icon: '↔' },
+  { to: '/app', labelKey: 'tabs.home', icon: 'overview', end: true },
+  { to: '/transactions', labelKey: 'tabs.activity', icon: 'transactions' },
 ]
 
 export default function Layout() {
@@ -151,7 +152,9 @@ export default function Layout() {
         <nav className="mt-[25px] grid gap-[4px]" aria-label="Main navigation">
           {NAV_ITEMS.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.to === '/app'} className={navButtonClass} onClick={() => setMobileOpen(false)}>
-              <span className="w-[18px] text-center text-[18px] text-[#b3d0bf]">{item.icon}</span>
+              <span className="inline-flex w-[18px] items-center justify-center text-[#b3d0bf]">
+                <NavIcon name={item.icon} />
+              </span>
               <span className="flex-1">{t(item.labelKey)}</span>
               {item.premium && !isPro ? <span className="text-[11px] font-bold tracking-[0.6px] text-[#d7ef6b]">{t('common.pro')}</span> : null}
             </NavLink>
@@ -159,7 +162,9 @@ export default function Layout() {
           <p className="mt-3 px-[13px] text-[11px] font-bold tracking-[1px] text-[#768e87]">{t('business.kicker')}</p>
           {BUSINESS_NAV_ITEMS.map((item) => (
             <NavLink key={item.to} to={item.to} className={navButtonClass} onClick={() => setMobileOpen(false)}>
-              <span className="w-[18px] text-center text-[18px] text-[#b3d0bf]">{item.icon}</span>
+              <span className="inline-flex w-[18px] items-center justify-center text-[#b3d0bf]">
+                <NavIcon name={item.icon} />
+              </span>
               <span className="flex-1">{t(item.labelKey)}</span>
             </NavLink>
           ))}
@@ -167,7 +172,9 @@ export default function Layout() {
 
         <div className="mt-auto pt-[22px]">
           <NavLink to="/settings" className={navButtonClass} onClick={() => setMobileOpen(false)}>
-            <span className="w-[18px] text-center text-[18px] text-[#b3d0bf]">⚙</span>
+            <span className="inline-flex w-[18px] items-center justify-center text-[#b3d0bf]">
+              <NavIcon name="settings" />
+            </span>
             {t('nav.settings')}
           </NavLink>
           <button
@@ -177,7 +184,9 @@ export default function Layout() {
             }}
             className="mt-1 flex w-full items-center gap-[13px] rounded-[7px] px-[13px] py-[11px] text-left text-[15px] text-[#b6c7c0] hover:bg-[#2e4947] hover:text-white"
           >
-            <span className="w-[18px] text-center text-[18px] text-[#b3d0bf]">→</span>
+            <span className="inline-flex w-[18px] items-center justify-center text-[#b3d0bf]">
+              <NavIcon name="logout" />
+            </span>
             {t('auth.signOut')}
           </button>
 
@@ -228,11 +237,11 @@ export default function Layout() {
               <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <button
                   type="button"
-                  className="hidden h-10 w-10 flex-shrink-0 place-items-center rounded-full text-[18px] text-[#46504c] hover:bg-[#eef1ed] md:grid lg:hidden"
+                  className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[#46504c] hover:bg-[#eef1ed] md:inline-flex lg:hidden"
                   onClick={() => setMobileOpen(true)}
                   aria-label={t('layout.openMenu')}
                 >
-                  ☰
+                  <NavIcon name="menu" />
                 </button>
                 <div className="min-w-0">
                   <p className="hidden text-[11px] font-medium tracking-[0.04em] text-[#8e9690] sm:block">
@@ -259,14 +268,14 @@ export default function Layout() {
                 <div className="relative">
                   <button
                     type="button"
-                    className="relative grid h-9 w-9 place-items-center rounded-full text-[18px] text-[#5f6b66] transition hover:bg-[#f3f6f1]"
+                    className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-[#5f6b66] transition hover:bg-[#f3f6f1]"
                     aria-label={t('layout.notifications')}
                     onClick={() => {
                       setAccountOpen(false)
                       setNotifyOpen((open) => !open)
                     }}
                   >
-                    ♢
+                    <NavIcon name="notifications" />
                     {unread > 0 ? (
                       <i className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#e96d52] ring-2 ring-white" />
                     ) : null}
@@ -385,7 +394,9 @@ export default function Layout() {
             {assistantOpen ? (
               <span className="text-2xl leading-none">×</span>
             ) : (
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-[#c9e75b] text-[14px] font-bold text-[#1d3434]">✦</span>
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#c9e75b] text-[#1d3434]">
+                <NavIcon name="ai" />
+              </span>
             )}
           </button>
         </div>
@@ -406,7 +417,7 @@ export default function Layout() {
                 `flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 px-1 text-[11px] leading-tight ${isActive ? 'text-[#1d3434]' : 'text-[#7d8782]'}`
               }
             >
-              <span className="text-[18px] leading-none">{item.icon}</span>
+              <NavIcon name={item.icon} />
               <span className="max-w-full truncate">{t(item.labelKey)}</span>
             </NavLink>
           ))}
@@ -415,10 +426,10 @@ export default function Layout() {
             <button
               type="button"
               onClick={() => setAddOpen(true)}
-              className="absolute -top-5 grid h-[3.25rem] w-[3.25rem] place-items-center rounded-full bg-[#e96d52] text-[1.65rem] font-semibold leading-none text-white shadow-[0_8px_18px_rgba(233,109,82,0.38)]"
+              className="absolute -top-5 inline-flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-full bg-[#e96d52] text-white shadow-[0_8px_18px_rgba(233,109,82,0.38)]"
               aria-label={t('layout.addTransaction')}
             >
-              +
+              <NavIcon name="add" />
             </button>
             <span className="mt-7 text-[11px] font-medium leading-tight text-[#7d8782]">{t('tabs.add')}</span>
           </div>
@@ -440,7 +451,9 @@ export default function Layout() {
               aria-label={t('ai.open')}
               aria-expanded={assistantOpen}
             >
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-[#1d3434] text-[12px] font-bold text-[#c9e75b]">✦</span>
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#1d3434] text-[#c9e75b]">
+                <NavIcon name="ai" />
+              </span>
               <span className="max-w-full truncate">{t('tabs.ai')}</span>
             </button>
           ) : (
@@ -450,7 +463,7 @@ export default function Layout() {
                 `flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 px-1 text-[11px] leading-tight ${isActive ? 'text-[#1d3434]' : 'text-[#7d8782]'}`
               }
             >
-              <span className="text-[18px] leading-none">▤</span>
+              <NavIcon name="budgets" />
               <span className="max-w-full truncate">{t('nav.budgets')}</span>
             </NavLink>
           )}
@@ -460,7 +473,7 @@ export default function Layout() {
             onClick={() => setMobileOpen(true)}
             className="flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 px-1 text-[11px] leading-tight text-[#7d8782]"
           >
-            <span className="text-[18px] leading-none">☰</span>
+            <NavIcon name="menu" />
             <span className="max-w-full truncate">{t('tabs.menu')}</span>
           </button>
         </div>

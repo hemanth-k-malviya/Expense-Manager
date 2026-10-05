@@ -129,10 +129,14 @@ button {
 }
 
 img,
-svg,
 video,
 canvas {
   max-width: 100%;
+}
+
+svg {
+  max-width: none;
+  flex-shrink: 0;
 }
 
 #root {

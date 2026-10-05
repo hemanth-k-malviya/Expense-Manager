@@ -100,20 +100,20 @@ export const DEFAULT_CATEGORIES = [
 ]
 
 export const NAV_ITEMS = [
-  { to: '/app', labelKey: 'nav.overview', icon: '◫' },
-  { to: '/transactions', labelKey: 'nav.transactions', icon: '↔' },
-  { to: '/budgets', labelKey: 'nav.budgets', icon: '▤' },
-  { to: '/goals', labelKey: 'nav.goals', icon: '◎', premium: true },
-  { to: '/reports', labelKey: 'nav.reports', icon: '▧', premium: true },
-  { to: '/books', labelKey: 'nav.books', icon: '◇' },
+  { to: '/app', labelKey: 'nav.overview', icon: 'overview' },
+  { to: '/transactions', labelKey: 'nav.transactions', icon: 'transactions' },
+  { to: '/budgets', labelKey: 'nav.budgets', icon: 'budgets' },
+  { to: '/goals', labelKey: 'nav.goals', icon: 'goals', premium: true },
+  { to: '/reports', labelKey: 'nav.reports', icon: 'reports', premium: true },
+  { to: '/books', labelKey: 'nav.books', icon: 'books' },
 ]
 
 export const BUSINESS_NAV_ITEMS = [
-  { to: '/business', labelKey: 'nav.company', icon: '▣', feature: 'company' },
-  { to: '/team', labelKey: 'nav.team', icon: '☺', feature: 'team' },
-  { to: '/clients', labelKey: 'nav.clients', icon: '◈', feature: 'clients' },
-  { to: '/approvals', labelKey: 'nav.approvals', icon: '✓', feature: 'approvals' },
-  { to: '/vendors', labelKey: 'nav.vendors', icon: '⬡', feature: 'vendors' },
-  { to: '/shops', labelKey: 'nav.shops', icon: '⌂', feature: 'shops' },
-  { to: '/analytics', labelKey: 'nav.analytics', icon: '▦', feature: 'analytics' },
+  { to: '/business', labelKey: 'nav.company', icon: 'company', feature: 'company' },
+  { to: '/team', labelKey: 'nav.team', icon: 'team', feature: 'team' },
+  { to: '/clients', labelKey: 'nav.clients', icon: 'clients', feature: 'clients' },
+  { to: '/approvals', labelKey: 'nav.approvals', icon: 'approvals', feature: 'approvals' },
+  { to: '/vendors', labelKey: 'nav.vendors', icon: 'vendors', feature: 'vendors' },
+  { to: '/shops', labelKey: 'nav.shops', icon: 'shops', feature: 'shops' },
+  { to: '/analytics', labelKey: 'nav.analytics', icon: 'analytics', feature: 'analytics' },
 ]
