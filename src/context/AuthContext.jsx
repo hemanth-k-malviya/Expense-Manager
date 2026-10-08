@@ -4,6 +4,7 @@ import {
   confirmPasswordReset,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -25,7 +26,7 @@ import {
   syncFirebaseWithApi,
   syncPasswordWithApi,
 } from '../lib/api'
-import { getFirebaseAuth, isFirebaseConfigured } from '../lib/firebase'
+import { getFirebaseAuth, isFirebaseConfigured, passwordResetSender } from '../lib/firebase'
 
 const AuthContext = createContext(null)
 
@@ -240,18 +241,54 @@ export function AuthProvider({ children }) {
   }, [syncFirebaseSession])
 
   const sendPasswordReset = useCallback(async (email) => {
-    const nextEmail = String(email || '').trim()
+    // Always target the login email the user typed (same id used at sign-in).
+    const nextEmail = String(email || '').trim().toLowerCase()
     if (!nextEmail) {
       const error = new Error('Missing email')
       error.code = 'auth/missing-email'
       throw error
     }
 
-    // Nodemailer via API is the real delivery path (Firebase mail often never arrives).
-    const data = await apiForgotPassword(nextEmail)
+    let apiSender = ''
+    let apiError = null
+    let firebaseOk = false
+    let firebaseError = null
+
+    // 1) Firebase → Google emails a reset link to this login email (any Firebase user).
+    const auth = getFirebaseAuth()
+    if (auth) {
+      try {
+        auth.useDeviceLanguage()
+      } catch {
+        // ignore
+      }
+      try {
+        await sendPasswordResetEmail(auth, nextEmail)
+        firebaseOk = true
+      } catch (caught) {
+        firebaseError = caught
+      }
+    }
+
+    // 2) API → same login email gets the app reset link (Mongo password / Resend / SMTP).
+    try {
+      const data = await apiForgotPassword(nextEmail)
+      apiSender = data?.sender || ''
+    } catch (caught) {
+      apiError = caught
+    }
+
+    if (apiError && !firebaseOk) {
+      throw apiError
+    }
+
+    const senders = []
+    if (firebaseOk) senders.push(passwordResetSender())
+    if (apiSender) senders.push(apiSender)
+
     return {
       email: nextEmail,
-      sender: data?.sender || '',
+      sender: senders.filter(Boolean).join(' or ') || apiSender || passwordResetSender(),
     }
   }, [])
 
